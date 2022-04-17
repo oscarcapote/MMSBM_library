@@ -109,7 +109,7 @@ class nodes_layer:
         self.theta = np.random.rand((N_nodes,L))
 
     def read_file(self, filename, separator="\t"):
-        self = pd.read_csv(filename,sep=separator.encode('utf-8'), engine='python')
+        self = pd.read_csv(filename,sep=separator, engine='python')
 
     def update_N(self, N_nodes):
         '''
