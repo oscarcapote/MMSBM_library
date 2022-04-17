@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from string import ascii_lowercase
 from copy import deepcopy
-from numba import jit,prange,int64,double,vectorize,float64
+#from numba import jit,prange,int64,double,vectorize,float64
 from time import time
 import os,sys
 import time as time_lib
@@ -87,7 +87,7 @@ class inclusive_metadata(metadata_layer):
 
 
 class nodes_layer:
-    def __init__(self, L, filename, node_name):
+    def __init__(self, L,  node_name, filename, *, separator="\t", **kwargs):
         self.L = L
         self.node_type = node_name
         self.df_nodes = self.read_file(filename, separator)
@@ -106,7 +106,7 @@ class nodes_layer:
         self.N_meta_inclusive = 0
         self.N_meta = 0
 
-        self.theta = np.random.random((N_nodes,L))
+        self.theta = np.random.rand((N_nodes,L))
 
     def read_file(self, filename, separator="\t"):
         self = pd.read_csv(filename,sep=separator.encode('utf-8'), engine='python')
@@ -121,7 +121,7 @@ class nodes_layer:
             Number of nodes
         '''
         self.N_nodes = N_nodes
-        self.theta = np.random.rand((N, self.L))
+        self.theta = np.random.rand((N_nodes, self.L))
 
     def add_exclusive_metadata(self, meta_name, lambda_meta):
         '''
