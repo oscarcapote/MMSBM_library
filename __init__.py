@@ -36,10 +36,10 @@ class metadata_layer:
         self.N_att = N_att
         return self.N_att
 
-    @property
+    #@property
     def links(self, links):
         """
-        Adds the links between nodes and metadata
+        Adds the links between nodes and metadata and update number of links
 
         Parameters
         -----------
@@ -87,10 +87,14 @@ class inclusive_metadata(metadata_layer):
 
 
 class nodes_layer:
-    def __init__(self, L,  node_name, filename, *, separator="\t", **kwargs):
+    def __init__(self, L,  node_name, nodes_info, *, separator="\t", **kwargs):
         self.L = L
         self.node_type = node_name
-        self.df_nodes = self.read_file(filename, separator)
+
+        if type(nodes_info)==type("d"):
+            self.df_nodes = self.read_file(filename, separator)
+        elif type(nodes_info)==type(pd.DataFrame()):
+            self.df_nodes = nodes_info
         codes = pd.Categorical(self.df_nodes[node_name]).codes
         self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[node_name+"_id"]))
         self.nodes_list = self.df_nodes[node_name].unique()
@@ -199,7 +203,7 @@ class nodes_layer:
 
 
 class BiNet:
-    def __init__(self,nodes_a,nodes_b,link):
-        self.nodes_a = nodes_a
-        self.nodes_b = nodes_b
+    def __init__(self,nodes_a,Ka,nodes_b,Kb,link):
+        self.nodes_a = nodes_layer(Ka,nodes_a)
+        self.nodes_b = nodes_layer(Kb,nodes_b)
         self.links = links
