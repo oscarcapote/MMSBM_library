@@ -93,7 +93,7 @@ class nodes_layer:
         self.df_nodes = self.read_file(filename, separator)
         codes = pd.Categorical(self.df_nodes[node_name]).codes
         self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[node_name+"_id"]))
-        self.nodes_list = self.df_nodes[node_name]unique()
+        self.nodes_list = self.df_nodes[node_name].unique()
 
         self.meta_exclusives = []
         self.meta_inclusives = []
