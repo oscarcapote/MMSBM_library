@@ -101,7 +101,7 @@ class nodes_layer:
         self.meta_neighbours_inclusives = []
 
 
-        self.N_nodes = np.max(df_nodes[node_name+"_id"].max()) + 1
+        self.N_nodes = np.max(self.df_nodes[node_name+"_id"].max()) + 1
         self.N_meta_exclusive = 0
         self.N_meta_inclusive = 0
         self.N_meta = 0
