@@ -106,7 +106,7 @@ class nodes_layer:
         self.N_meta_inclusive = 0
         self.N_meta = 0
 
-        self.theta = np.random.rand((N_nodes,L))
+        self.theta = np.random.rand((self.N_nodes,L))
 
     def read_file(self, filename, separator="\t"):
         return pd.read_csv(filename,sep=separator, engine='python')
@@ -152,7 +152,7 @@ class nodes_layer:
 
         meta_neighbours = np.ones(self.N_nodes,dtype=np.int32)
 
-        for n in range(N_nodes):
+        for n in range(self.N_nodes):
             meta_neighbours[n] = self.df_nodes[[self.node_type+"_id" == n]][meta_name+"_id"]
 
         self.meta_neighbours_exclusives.append(meta_neighbours)
@@ -190,7 +190,7 @@ class nodes_layer:
 
             meta_neighbours = np.ones(self.N_nodes,dtype=np.int32)
 
-            for n in range(N_nodes):
+            for n in range(self.N_nodes):
                 meta_neighbours[n] = self.df_nodes[[self.node_type+"_id" == n]][meta_name+"_id"]
 
             self.meta_neighbours_inclusives.append(meta_neighbours)
