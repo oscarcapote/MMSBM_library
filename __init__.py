@@ -64,7 +64,7 @@ class exclusive_metadata(metadata_layer):
 
     @property
     def qka(self, K):
-        self.qka = np.random.rand((K,self.N_meta))
+        self.qka = np.random.rand(K,self.N_meta)
 
 
 class inclusive_metadata(metadata_layer):
@@ -76,11 +76,11 @@ class inclusive_metadata(metadata_layer):
 
     @property
     def zeta(self, K):
-        self.zeta = np.random.rand((self.N_att, Tau))
+        self.zeta = np.random.rand(self.N_att, Tau)
 
     @property
     def q_k_tau(self, K, Tau):
-        self.q_k_tau = np.random.rand((K,self.Tau,self.N_att))
+        self.q_k_tau = np.random.rand(K,self.Tau,self.N_att)
 
 
 
@@ -106,7 +106,7 @@ class nodes_layer:
         self.N_meta_inclusive = 0
         self.N_meta = 0
 
-        self.theta = np.random.rand((self.N_nodes,L))
+        self.theta = np.random.rand(self.N_nodes,L)
 
     def read_file(self, filename, separator="\t"):
         return pd.read_csv(filename,sep=separator, engine='python')
@@ -121,7 +121,7 @@ class nodes_layer:
             Number of nodes
         '''
         self.N_nodes = N_nodes
-        self.theta = np.random.rand((N_nodes, self.L))
+        self.theta = np.random.rand(N_nodes, self.L)
 
     def add_exclusive_metadata(self, meta_name, lambda_meta):
         '''
