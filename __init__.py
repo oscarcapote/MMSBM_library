@@ -102,7 +102,9 @@ class nodes_layer:
         self.meta_exclusives = []
         self.meta_inclusives = []
         self.meta_neighbours_exclusives = []
-        self.meta_neighbours_inclusives = []
+        self.meta_neighbours_inclusives = [] #all neighbours (connected and not) of inclusive metadata
+        self.inclusive_linked = [] #metadata inclusive for each node
+        self.nodes_observed_inclusive = []
 
 
         self.N_nodes = np.max(self.df_nodes[node_name+"_id"].max()) + 1
@@ -162,42 +164,77 @@ class nodes_layer:
         self.meta_neighbours_exclusives.append(meta_neighbours)
 
 
-        def add_inclusive_metadata(self, meta_name, lambda_meta, Tau):
-            '''
-            Add inclusive_metadata object to node_layer object
+    def add_inclusive_metadata(self, meta_name, lambda_meta, Tau, separator="|"):
+        '''
+        Add inclusive_metadata object to node_layer object
 
-            Parameters
-            -----------
-            meta_name: Str
-                Name of the metadata that should be in the node dataframe
+        Parameters
+        -----------
+        meta_name: Str
+            Name of the metadata that should be in the node dataframe
 
-            lambda_meta: Float
-                Value of the metadata visibility
+        lambda_meta: Float
+            Value of the metadata visibility
 
-            lambda_meta: Tau
-                Number of membership groups of metadata
-            '''
-            #encode metadata
-            codes = pd.Categorical(self.df_nodes[meta_name]).codes
-            self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[meta_name+"_id"]))
+        Tau: Int
+            Number of membership groups of metadata
 
-            #create metadata object
-            im = inclusive_metadata(meta_name, lambda_meta, Tau)
-            im.links(self.df_nodes[[self.node_type,meta_name]].values)
-            im.N_att(len(set(codes)))
-            im.q_k_tau()
 
-            #update meta related nodes attributes
-            self.meta_inclusives.append(im)
-            self.N_meta_inclusive += 1
-            self.N_meta += 1
+        Separator: str
+            Separator that is used to differenciate the differents metadata assigned for each node
+        '''
 
-            meta_neighbours = np.ones(self.N_nodes,dtype=np.int32)
+        #create metadata object
+        im = inclusive_metadata(meta_name, lambda_meta, Tau)
+        im.q_k_tau(self.K,Tau,2)
 
-            for n in range(self.N_nodes):
-                meta_neighbours[n] = self.df_nodes[[self.node_type+"_id" == n]][meta_name+"_id"]
+        #links and neighbours
+        df_dropna = df.dropna(subset=meta_name)
+        observed = df_dropna[self.node_type+"_id"].values #Nodes with known metadata
 
-            self.meta_neighbours_inclusives.append(meta_neighbours)
+        #encode metadata
+        meta_neighbours = [[int(j) for j in i.split(separator)] for i in df_dropna [meta_name].values]
+        codes = {}
+
+        for l in range(len(meta_neighbours)):
+            for m in range(len(l)):
+                codes[m] = codes[m].get(len(codes),m)
+
+        im.N_att(len(set(codes)))
+
+        #Links between node and metadata type
+        links = np.ones((len(observed)*im.N_att,2))
+        #Label of the link: 0 if not connected 1 if connected
+        labels = np.zeros(len(observed)*im.N_att)
+
+        index = 0
+        for i,o in enumerated(observed):
+            for a in range(N_att):
+                links[index,0] = o
+                links[index,1] = a
+
+                if a in meta_neighbours[i]:
+                    labels[index] = 1
+
+                index += 1
+
+        im.links = links
+        im.labels = labels
+
+        #codes = pd.Categorical(self.df_nodes[meta_name]).codes
+        #self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[meta_name+"_id"]))
+        # self.inclusive_linked.append([[int(j) for j in i.split(separator)] for i in df_dropna [meta_name+"_id"].values])
+
+        self.nodes_observed_inclusive.append(observed)
+
+
+        #update meta related nodes attributes
+        self.meta_inclusives.append(im)
+        self.N_meta_inclusive += 1
+        self.N_meta += 1
+
+
+        self.meta_neighbours_inclusives.append(meta_neighbours)
 
 
 
