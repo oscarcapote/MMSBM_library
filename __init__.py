@@ -87,8 +87,8 @@ class inclusive_metadata(metadata_layer):
 
 
 class nodes_layer:
-    def __init__(self, L,  node_name, nodes_info, *, separator="\t", **kwargs):
-        self.L = L
+    def __init__(self, K,  node_name, nodes_info, *, separator="\t", **kwargs):
+        self.K = K
         self.node_type = node_name
 
         if type(nodes_info)==type("d"):
