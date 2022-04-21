@@ -21,7 +21,7 @@ class metadata_layer:
     def N_meta(self):
         return self.N_meta
 
-    @property.setter
+    @N_meta.setter
     def N_meta(self, N_meta):
         self.N_meta = N_meta
         return self.N_meta
