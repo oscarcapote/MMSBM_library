@@ -66,7 +66,7 @@ class exclusive_metadata(metadata_layer):
     def qka(self):
         return self.qka
 
-    @property.setter
+    @qka.setter
     def qka(self, K):
         self.qka = np.random.rand(K,self.N_meta)
         return self.qka
