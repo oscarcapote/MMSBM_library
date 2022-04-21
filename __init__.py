@@ -73,7 +73,7 @@ class metadata_layer:
 class exclusive_metadata(metadata_layer):
 
     def __init__(self,lambda_meta,meta_name,K):
-        super.__init__(lambda_meta,meta_name)
+        super().__init__(lambda_meta,meta_name)
         self.qka = qka(K)
 
     @property
@@ -90,7 +90,7 @@ class inclusive_metadata(metadata_layer):
 
 
     def __init__(self, Tau):
-        super.__init__(lambda_meta,meta_name)
+        super().__init__(lambda_meta,meta_name)
         self.Tau = Tau
         self.zeta = self.zeta(Tau)
 
