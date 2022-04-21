@@ -92,7 +92,7 @@ class nodes_layer:
         self.node_type = node_name
 
         if type(nodes_info)==type("d"):
-            self.df_nodes = self.read_file(filename, separator)
+            self.df_nodes = self.read_file(nodes_info, separator)
         elif type(nodes_info)==type(pd.DataFrame()):
             self.df_nodes = nodes_info
         codes = pd.Categorical(self.df_nodes[node_name]).codes
