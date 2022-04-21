@@ -73,7 +73,8 @@ class metadata_layer:
 class exclusive_metadata(metadata_layer):
 
     def __init__(self,K):
-
+        super.__init__(lambda_meta,meta_name)
+        self.qka = qka(K)
 
     @property
     def qka(self):
