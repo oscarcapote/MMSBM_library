@@ -19,16 +19,16 @@ class metadata_layer:
 
     @property
     def N_meta(self):
-        return self.N_meta
+        return self._N_meta
 
     @N_meta.setter
     def N_meta(self, N_meta):
-        self.N_meta = N_meta
-        return self.N_meta
+        self._N_meta = N_meta
+        return self._N_meta
 
     @property
     def N_att(self):
-        return self.N_att
+        return self._N_att
     @N_att.setter
     def N_att(self, N_att):
         """
@@ -40,12 +40,12 @@ class metadata_layer:
             Number of different categorical attributes of the metadata
 
         """
-        self.N_att = N_att
+        self._N_att = N_att
         return self.N_att
 
     @property
     def links(self):
-        return self.links
+        return self._links
 
     @links.setter
     def links(self, links):
@@ -64,7 +64,7 @@ class metadata_layer:
 
         """
 
-        self.links = links
+        self._links = links
         self.N_links = len(links)
     #
     # def add_links(self, links):
@@ -74,16 +74,16 @@ class exclusive_metadata(metadata_layer):
 
     def __init__(self,lambda_meta,meta_name,K):
         super().__init__(lambda_meta,meta_name)
-        self.qka = self.qka(K)
+        self._qka = self.qka(K)
 
     @property
     def qka(self):
-        return self.qka
+        return self._qka
 
     @qka.setter
     def qka(self, K):
-        self.qka = np.random.rand(K,self.N_meta)
-        return self.qka
+        self._qka = np.random.rand(K,self.N_meta)
+        return self._qka
 
 
 class inclusive_metadata(metadata_layer):
@@ -96,17 +96,20 @@ class inclusive_metadata(metadata_layer):
 
     @property
     def zeta(self):
-        return self.zeta
+        return self._zeta
     @zeta.setter
     def zeta(self, Tau):
         self.zeta = np.random.rand(self.N_att, Tau)
+        return self._zeta
 
     @property
     def q_k_tau(self, K, Tau):
-        return self.q_k_tau
+        return self._q_k_tau
+
     @q_k_tau.setter
     def q_k_tau(self, K, Tau):
-        self.q_k_tau = np.random.rand(K,self.Tau,self.N_att)
+        self._q_k_tau = np.random.rand(K,self.Tau,self.N_att)
+        return self._q_k_tau
 
 
 
