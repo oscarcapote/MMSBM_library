@@ -72,7 +72,7 @@ class metadata_layer:
     #     self.N_links = len(self.links)
 class exclusive_metadata(metadata_layer):
 
-    def __init__(self,K):
+    def __init__(self,lambda_meta,meta_name,K):
         super.__init__(lambda_meta,meta_name)
         self.qka = qka(K)
 
