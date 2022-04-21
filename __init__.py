@@ -172,7 +172,7 @@ class nodes_layer:
         self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[meta_name+"_id"]))
 
         #create metadata object
-        em = exclusive_metadata(meta_name, lambda_meta)
+        em = exclusive_metadata(meta_name, lambda_meta, self.K)
         em.links(self.df_nodes[[self.node_type,meta_name]].values)
         em.qka(self.K)
         em.N_att(len(set(codes)))
