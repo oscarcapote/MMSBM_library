@@ -90,13 +90,15 @@ class inclusive_metadata(metadata_layer):
 
 
     def __init__(self, Tau):
+        super.__init__(lambda_meta,meta_name)
         self.Tau = Tau
+        self.zeta = self.zeta(Tau)
 
     @property
-    def zeta(self, K):
+    def zeta(self):
         return self.zeta
     @zeta.setter
-    def zeta(self, K):
+    def zeta(self, Tau):
         self.zeta = np.random.rand(self.N_att, Tau)
 
     @property
