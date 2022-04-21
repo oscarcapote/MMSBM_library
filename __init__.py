@@ -112,7 +112,7 @@ class nodes_layer:
         self.N_meta_inclusive = 0
         self.N_meta = 0
 
-        self.theta = np.random.rand(self.N_nodes,L)
+        self.theta = np.random.rand(self.N_nodes,K)
 
     def read_file(self, filename, separator="\t"):
         return pd.read_csv(filename,sep=separator, engine='python')
@@ -127,7 +127,7 @@ class nodes_layer:
             Number of nodes
         '''
         self.N_nodes = N_nodes
-        self.theta = np.random.rand(N_nodes, self.L)
+        self.theta = np.random.rand(N_nodes, self.K)
 
     def add_exclusive_metadata(self, meta_name, lambda_meta):
         '''
