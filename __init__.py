@@ -18,11 +18,18 @@ class metadata_layer:
         self.lambda_meta = lambda_meta
 
     @property
+    def N_meta(self):
+        return self.N_meta
+
+    @property.setter
     def N_meta(self, N_meta):
         self.N_meta = N_meta
         return self.N_meta
 
     @property
+    def N_att(self):
+        return self.N_att
+    @N_att.setter
     def N_att(self, N_att):
         """
         Number of different categorical attributes of the metadata
@@ -36,7 +43,11 @@ class metadata_layer:
         self.N_att = N_att
         return self.N_att
 
-    #@property
+    @property
+    def links(self):
+        return self.links
+
+    @links.setter
     def links(self, links):
         """
         Adds the links between nodes and metadata and update number of links
@@ -61,6 +72,8 @@ class metadata_layer:
     #     self.N_links = len(self.links)
 class exclusive_metadata(metadata_layer):
 
+    def __init__(self,K):
+
 
     @property
     def qka(self):
@@ -78,12 +91,17 @@ class inclusive_metadata(metadata_layer):
     def __init__(self, Tau):
         self.Tau = Tau
 
-
     @property
+    def zeta(self, K):
+        return self.zeta
+    @zeta.setter
     def zeta(self, K):
         self.zeta = np.random.rand(self.N_att, Tau)
 
     @property
+    def q_k_tau(self, K, Tau):
+        return self.q_k_tau
+    @q_k_tau.setter
     def q_k_tau(self, K, Tau):
         self.q_k_tau = np.random.rand(K,self.Tau,self.N_att)
 
