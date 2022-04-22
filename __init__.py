@@ -74,7 +74,8 @@ class exclusive_metadata(metadata_layer):
 
     def __init__(self,lambda_meta,meta_name,K):
         super().__init__(lambda_meta,meta_name)
-        self._qka = self.qka(K)
+        #self.qka = K
+        #print("---",self.qka.shape)
 
     @property
     def qka(self):
@@ -82,8 +83,9 @@ class exclusive_metadata(metadata_layer):
 
     @qka.setter
     def qka(self, K):
+        print("Hola!!!!",K)
+        if K<=0:raise ValueError("Value of K must be positive!")
         self._qka = np.random.rand(K,self.N_meta)
-        return self._qka
 
 
 class inclusive_metadata(metadata_layer):
@@ -92,22 +94,25 @@ class inclusive_metadata(metadata_layer):
     def __init__(self, Tau):
         super().__init__(lambda_meta,meta_name)
         self.Tau = Tau
-        self.zeta = self.zeta(Tau)
+        # self.zeta = self.zeta(Tau)
 
     @property
     def zeta(self):
         return self._zeta
     @zeta.setter
     def zeta(self, Tau):
+        if Tau<=0:raise ValueError("Value of Tau must be positive!")
         self.zeta = np.random.rand(self.N_att, Tau)
         return self._zeta
 
     @property
-    def q_k_tau(self, K, Tau):
+    def q_k_tau(self):
         return self._q_k_tau
 
     @q_k_tau.setter
     def q_k_tau(self, K, Tau):
+        if K<=0:raise ValueError("Value of K must be positive!")
+        if Tau<=0:raise ValueError("Value of Tau must be positive!")
         self._q_k_tau = np.random.rand(K,self.Tau,self.N_att)
         return self._q_k_tau
 
@@ -126,7 +131,9 @@ class nodes_layer:
             self.df_nodes = nodes_info
 
         codes = pd.Categorical(self.df_nodes[nodes_name]).codes
-        self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[nodes_name+"_id"]))
+        # self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[nodes_name+"_id"]))
+        print(self.df_nodes)
+        self.df_nodes = pd.concat([self.df_nodes,pd.DataFrame({nodes_name+"_id":codes})], axis=1, ignore_index=True)
         self.nodes_list = self.df_nodes[nodes_name].unique()
 
         self.meta_exclusives = []
@@ -137,7 +144,7 @@ class nodes_layer:
         self.nodes_observed_inclusive = []
 
 
-        self.N_nodes = np.max(self.df_nodes[nodes_name+"_id"].max()) + 1
+        self.N_nodes = len(codes)
         self.N_meta_exclusive = 0
         self.N_meta_inclusive = 0
         self.N_meta = 0
@@ -206,7 +213,7 @@ class nodes_layer:
 
         Parameters
         -----------
-        meta_name: Str
+        meta_name: str
             Name of the metadata that should be in the node dataframe
 
         lambda_meta: Float
@@ -218,9 +225,11 @@ class nodes_layer:
 
         #create metadata object
         em = exclusive_metadata(meta_name, lambda_meta, self.K)
-        em.links(self.df_nodes[[self.node_type,meta_name]].values)
-        em.qka(self.K)
-        em.N_att(len(set(codes)))
+        print("---",self.node_type)
+        em.links = self.df_nodes[[self.node_type,meta_name]].values
+        em.N_meta = len(codes)
+        em.qka = self.K
+        em.N_att = len(set(codes))
 
         #update meta related nodes attributes
         self.meta_exclusives.append(em)
@@ -230,6 +239,7 @@ class nodes_layer:
         meta_neighbours = np.ones(self.N_nodes,dtype=np.int32)
 
         for n in range(self.N_nodes):
+            print(n)
             meta_neighbours[n] = self.df_nodes[[self.node_type+"_id" == n]][meta_name+"_id"]
 
         self.meta_neighbours_exclusives.append(meta_neighbours)
@@ -312,9 +322,9 @@ class nodes_layer:
 
 class BiNet:
     def __init__(self,nodes_a,nodes_b,links, links_name,*,Ka=1, nodes_a_name="nodes_a",Kb=1, nodes_b_name="nodes_b"):
-        if type(links)==type(pd.DataFrame())
+        if type(links)==type(pd.DataFrame()):
             self.links = links
-        elif:
+        elif isinstance(links, str):
             self.links = pd.read_csv(filename,sep=separator, engine='python')
 
         self.links_list = self.links[links_name].values
