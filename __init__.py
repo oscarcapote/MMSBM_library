@@ -116,17 +116,18 @@ class inclusive_metadata(metadata_layer):
 
 
 class nodes_layer:
-    def __init__(self, K,  node_name, nodes_info, *, separator="\t", **kwargs):
+    def __init__(self, K,  nodes_name, nodes_info, *, separator="\t", **kwargs):
         self.K = K
-        self.node_type = node_name
+        self.node_type = nodes_name
 
         if type(nodes_info)==type("d"):
             self.df_nodes = self.read_file(nodes_info, separator)
         elif type(nodes_info)==type(pd.DataFrame()):
             self.df_nodes = nodes_info
-        codes = pd.Categorical(self.df_nodes[node_name]).codes
-        self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[node_name+"_id"]))
-        self.nodes_list = self.df_nodes[node_name].unique()
+
+        codes = pd.Categorical(self.df_nodes[nodes_name]).codes
+        self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[nodes_name+"_id"]))
+        self.nodes_list = self.df_nodes[nodes_name].unique()
 
         self.meta_exclusives = []
         self.meta_inclusives = []
@@ -136,7 +137,7 @@ class nodes_layer:
         self.nodes_observed_inclusive = []
 
 
-        self.N_nodes = np.max(self.df_nodes[node_name+"_id"].max()) + 1
+        self.N_nodes = np.max(self.df_nodes[nodes_name+"_id"].max()) + 1
         self.N_meta_exclusive = 0
         self.N_meta_inclusive = 0
         self.N_meta = 0
@@ -145,6 +146,34 @@ class nodes_layer:
 
     def read_file(self, filename, separator="\t"):
         return pd.read_csv(filename,sep=separator, engine='python')
+
+
+    @classmethod
+    def create_simple_layer(cls, K, nodes_list, nodes_name):
+        '''
+        Create a nodes_layer object from a list or DataSeries without only with the known nodes
+
+        Parameters
+        -----------
+        K: Int
+            Number of membership groups of nodes_layer
+
+        nodes_list: list or DataSeries
+            List or DataSeries with all the nodes
+
+        nodes_name: str
+            Name of the nodes type (users, movies, metobolites...) that are or will be in DataFrame
+
+        '''
+        if isinstance(nodes_list, List):
+            new_df = pd.DataFrame({nodes_name:nodes_list})
+        elif isinstance(nodes_list, pd.DataFrame):
+            new_df = nodes_list
+
+        return cls(K,  nodes_name, new_df)
+
+
+
 
     def update_N(self, N_nodes):
         '''
@@ -157,6 +186,19 @@ class nodes_layer:
         '''
         self.N_nodes = N_nodes
         self.theta = np.random.rand(N_nodes, self.K)
+
+
+    def update_K(self, K):
+        '''
+        Update the number of membership groups of nodes_layer and reinitialize the membership matrix
+
+        Parameters
+        -----------
+        K: Int
+            Number of membership groups of nodes_layer
+        '''
+        self.K = K
+        self.theta = np.random.rand(self.N_nodes, K)
 
     def add_exclusive_metadata(self, meta_name, lambda_meta):
         '''
@@ -269,7 +311,22 @@ class nodes_layer:
 
 
 class BiNet:
-    def __init__(self,nodes_a,Ka,nodes_b,Kb,link):
-        self.nodes_a = nodes_layer(Ka,nodes_a)
-        self.nodes_b = nodes_layer(Kb,nodes_b)
-        self.links = links
+    def __init__(self,nodes_a,nodes_b,links, links_name,*,Ka=1, nodes_a_name="nodes_a",Kb=1, nodes_b_name="nodes_b"):
+        if type(links)==type(pd.DataFrame())
+            self.links = links
+        elif:
+            self.links = pd.read_csv(filename,sep=separator, engine='python')
+
+        self.links_list = self.links[links_name].values
+
+        #creating first layer class
+        if isinstance(nodes_a, nodes_layer):
+            self.nodes_a = nodes_a
+        elif isinstance(nodes_a, str):
+            self.nodes_a = create_simple_layer(Ka, links[nodes_a], nodes_a)
+
+        #creating second layer class
+        if isinstance(nodes_b, nodes_layer):
+            self.nodes_b = nodes_b
+        elif isinstance(nodes_a, str):
+            self.nodes_b = create_simple_layer(Kb, links[nodes_b], nodes_b)
