@@ -207,6 +207,9 @@ class nodes_layer:
         self.K = K
         self.theta = np.random.rand(self.N_nodes, K)
 
+    def __len__(self):
+        return self.N_nodes
+
     def add_exclusive_metadata(self, meta_name, lambda_meta):
         '''
         Add exclusive_metadata object to node_layer object
@@ -225,7 +228,6 @@ class nodes_layer:
 
         #create metadata object
         em = exclusive_metadata(meta_name, lambda_meta, self.K)
-        print("---",self.node_type)
         em.links = self.df_nodes[[self.node_type,meta_name]].values
         em.N_meta = len(codes)
         em.qka = self.K
@@ -239,7 +241,6 @@ class nodes_layer:
         meta_neighbours = np.ones(self.N_nodes,dtype=np.int32)
 
         for n in range(self.N_nodes):
-            print(n)
             meta_neighbours[n] = self.df_nodes[[self.node_type+"_id" == n]][meta_name+"_id"]
 
         self.meta_neighbours_exclusives.append(meta_neighbours)
@@ -327,7 +328,6 @@ class BiNet:
         elif isinstance(links, str):
             self.links = pd.read_csv(filename,sep=separator, engine='python')
 
-        self.links_list = self.links[links_name].values
 
         #creating first layer class
         if isinstance(nodes_a, nodes_layer):
@@ -335,8 +335,44 @@ class BiNet:
         elif isinstance(nodes_a, str):
             self.nodes_a = create_simple_layer(Ka, links[nodes_a], nodes_a)
 
+
         #creating second layer class
         if isinstance(nodes_b, nodes_layer):
             self.nodes_b = nodes_b
         elif isinstance(nodes_a, str):
             self.nodes_b = create_simple_layer(Kb, links[nodes_b], nodes_b)
+
+        self.links_array = self.links[[nodes_a_name,nodes_b_name]].values
+        self.ratings_array = self.links[links_name].values
+        self.N_ratings = max(ratings_array)
+
+
+    def init_MAP(self, seed = None):
+        '''
+        Initialize the MAP algorithm to get the most plausible parameters
+
+        Parameters
+        -----------
+        seed: Int
+            Seed to generate the matrices. If None, python will choose it
+
+        '''
+        #Probability matrices
+        self.pkl = np.array((self.nodes_a.Ka,self.nodes_b.Kb,self.N_ratings))
+
+        ## qka
+        for meta in self.nodes_a.meta_exclusives:
+            meta.qka = np.array((self.nodes_a.Ka,meta.N_att))
+
+        for meta in self.nodes_b.meta_exclusives:
+            meta.qka = np.array((self.nodes_b.Kb,meta.N_att))
+
+        ## ql_tau
+        for meta in self.nodes_a.meta_inclusives:
+            meta.q_l_tau = np.array((self.nodes_a.Ka, meta.Tau,2))
+
+            for meta in self.nodes_a.meta_inclusives:
+                meta.q_l_tau = np.array((self.nodes_a.Ka, meta.Tau,2))
+
+
+        self.omega = np.array((len(self.nodes_a),len(self.nodes_b),self.nodes_a.Ka,self.nodes_b.Kb))
