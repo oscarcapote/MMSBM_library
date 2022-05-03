@@ -100,10 +100,13 @@ class exclusive_metadata(metadata_layer):
         return self._qka
 
     @qka.setter
-    def qka(self, K):
-        print("Hola!!!!", K)
+    def qka(self, qka):
+        self._qka = qka
+
+    def init_qka(self, K):
+        # print("Hola!!!!", K)
         if K <= 0: raise ValueError("Value of K must be positive!")
-        self._qka = np.random.rand(K, self.N_att)
+        self.qka = np.random.rand(K, self.N_att)
 
 
 class inclusive_metadata(metadata_layer):
@@ -128,7 +131,13 @@ class inclusive_metadata(metadata_layer):
         return self._q_k_tau
 
     @q_k_tau.setter
-    def q_k_tau(self, K, Tau):
+    def q_k_tau(self, q_k_tau):
+        self._q_k_tau =  q_k_tau
+
+
+
+    # @q_k_tau.setter
+    def init_q_k_tau(self, K, Tau):
         if K <= 0: raise ValueError("Value of K must be positive!")
         if Tau <= 0: raise ValueError("Value of Tau must be positive!")
         self._q_k_tau = np.random.rand(K, self.Tau, self.N_att)
@@ -147,10 +156,10 @@ class nodes_layer:
 
         codes = pd.Categorical(self.df_nodes[nodes_name]).codes
         # self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[nodes_name+"_id"]))
-        print(self.df_nodes)
+        # print(self.df_nodes)
         # self.df_nodes = pd.concat([self.df_nodes, pd.DataFrame({nodes_name + "_id": codes})], axis=1, ignore_index=True)
         self.df_nodes[nodes_name + "_id"] = codes
-        print(self.df_nodes)
+        # print(self.df_nodes)
         self.nodes_list = self.df_nodes[nodes_name].unique()
 
         self.meta_exclusives = []
@@ -240,8 +249,8 @@ class nodes_layer:
         # create metadata object
         em = exclusive_metadata(meta_name, lambda_meta, self.K)
         em.links = self.df_nodes[[self.node_type, meta_name]].values
-        em.qka = self.K
         em.N_att = len(set(codes))
+        em.qka = em.init_qka(self.K)
 
         # update meta related nodes attributes
         self.meta_exclusives.append(em)
@@ -251,7 +260,7 @@ class nodes_layer:
         meta_neighbours = np.ones(self.N_nodes, dtype=np.int32)
 
         for n in range(self.N_nodes):
-            meta_neighbours[n] = self.df_nodes[[self.node_type + "_id" == n]][meta_name + "_id"]
+            meta_neighbours[n] = self.df_nodes[self.df_nodes[self.node_type + "_id" ]== n][meta_name + "_id"]
 
         self.meta_neighbours_exclusives.append(meta_neighbours)
 
