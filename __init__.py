@@ -148,7 +148,9 @@ class nodes_layer:
         codes = pd.Categorical(self.df_nodes[nodes_name]).codes
         # self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[nodes_name+"_id"]))
         print(self.df_nodes)
-        self.df_nodes = pd.concat([self.df_nodes, pd.DataFrame({nodes_name + "_id": codes})], axis=1, ignore_index=True)
+        # self.df_nodes = pd.concat([self.df_nodes, pd.DataFrame({nodes_name + "_id": codes})], axis=1, ignore_index=True)
+        self.df_nodes[nodes_name + "_id"] = codes
+        print(self.df_nodes)
         self.nodes_list = self.df_nodes[nodes_name].unique()
 
         self.meta_exclusives = []
