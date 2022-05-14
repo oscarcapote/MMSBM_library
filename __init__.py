@@ -14,6 +14,13 @@ import yaml
 
 
 class metadata_layer:
+    """
+    Principal class of nodes_layer metadata. It contains extra information about the nodes.
+
+    It has two subclasses:
+        - exclusive_metadata
+        - inclusive_metadata
+    """
     def __init__(self, lambda_meta, meta_name):
         self.meta_name = meta_name
         self.lambda_meta = lambda_meta
@@ -79,8 +86,9 @@ class metadata_layer:
 
 class exclusive_metadata(metadata_layer):
 
-    def __init__(self, lambda_meta, meta_name, K):
+    def __init__(self, lambda_meta, meta_name):
         """
+        Initialization of the exclusive_metadata class
 
         Parameters
         ----------
@@ -111,7 +119,19 @@ class exclusive_metadata(metadata_layer):
 
 class inclusive_metadata(metadata_layer):
 
-    def __init__(self, Tau):
+    def __init__(self, lambda_meta, meta_name, Tau):
+            """
+            Initialization of the inclusive_metadata class
+
+            Parameters
+            ----------
+            lambda_meta: float
+                Metadata visibility
+            meta_name: str
+                Name of the metadata column in the node_layer class
+            Tau: int
+                Number of membership groups of this metadata
+            """
         super().__init__(lambda_meta, meta_name)
         self.Tau = Tau
         # self.zeta = self.zeta(Tau)
@@ -145,6 +165,21 @@ class inclusive_metadata(metadata_layer):
 
 
 class nodes_layer:
+    """
+    Base class of a layer that contains nodes
+
+    Is initialized using a dataframe and can be modify it  using the df_nodes attribute
+
+    The rest of the columns of the dataframe can contain information (metadata) from the nodes.
+    This metadata can be added as a metadata_layer object considering the network as multipartite network.
+    This metadata can be classify it as exclusive_metadata (if a node only accepts one attribute) and inclusive_metadata (if the node accepts more than one attribute)
+
+    See for more information of metadata: metadata_layer, exclusive_metadata and inclusive_metadata.
+
+    These objects can be added into a BiNet (bipartite network) where connection between nodes_layer are considered to infer links and their labels  (see BiNet)
+    """
+
+
     def __init__(self, K, nodes_name, nodes_info, *, separator="\t", **kwargs):
         self.K = K
         self.node_type = nodes_name
@@ -161,6 +196,7 @@ class nodes_layer:
         self.df_nodes[nodes_name + "_id"] = codes
         # print(self.df_nodes)
         self.nodes_list = self.df_nodes[nodes_name].unique()
+
 
         self.meta_exclusives = []
         self.meta_inclusives = []
@@ -247,7 +283,7 @@ class nodes_layer:
         self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[meta_name + "_id"]))
 
         # create metadata object
-        em = exclusive_metadata(meta_name, lambda_meta, self.K)
+        em = exclusive_metadata(meta_name, lambda_meta)
         em.links = self.df_nodes[[self.node_type, meta_name]].values
         em.N_att = len(set(codes))
         em.qka = em.init_qka(self.K)
@@ -270,10 +306,10 @@ class nodes_layer:
 
         Parameters
         -----------
-        meta_name: Str
+        meta_name: str
             Name of the metadata that should be in the node dataframe
 
-        lambda_meta: Float
+        lambda_meta: float
             Value of the metadata visibility
 
         Tau: Int
@@ -336,8 +372,47 @@ class nodes_layer:
 
 
 class BiNet:
-    def __init__(self, nodes_a, nodes_b, links, links_name,*, Ka=1, nodes_a_name="nodes_a", Kb=1,
+    """
+    Class of a Bipartite Network, where two layers of different types of nodes are connected (users->items, politicians->bills, patient->microbiome...) and these links can be labeled with informations of the interaction (ratings, votes...)
+
+
+    """
+    def __init__(self, nodes_a, nodes_b, links, links_label,*, Ka=1, nodes_a_name="nodes_a", Kb=1,
                  nodes_b_name="nodes_b", separator="\t"):
+         """
+         Initialization of a BiNet class
+
+         Parameters
+         -----------
+         nodes_a: nodes_layer, str
+             One of the nodes layer that forms the bipartite network
+             If it is a string, it should contain the directory where the information of the nodes of type a are.
+
+         nodes_b:
+             One of the nodes layer that forms the bipartite network
+             If it is a string, it should contain the directory where the information of the nodes of type b are.
+
+         links: str, DataFrame
+            DataFrame or directory where the dataframe is. It should contains the links list between nodes_a and nodes_b and their labels.
+
+         links_label: str
+            Name of the links column where the labels are
+
+         Ka: int
+            Number of membership groups from nodes_a layer
+
+         Kb: int
+            Number of membership groups from nodes_b layer
+
+         nodes_a_name: str
+            Name of the column where the names of nodes_a are in the links DataFrame and nodes_a DataFrame
+
+         nodes_b_name: str
+            Name of the column where the names of nodes_b are in the links DataFrame and nodes_b DataFrame
+
+         separator: str
+            Separator of the links DataFrame. Default is \t
+         """
         if type(links) == type(pd.DataFrame()):
             self.links = links
         elif isinstance(links, str):
@@ -357,7 +432,7 @@ class BiNet:
             self.nodes_b = nodes_layer.create_simple_layer(Kb, links[nodes_b], nodes_b)
 
         self.links_array = self.links[[nodes_a_name, nodes_b_name]].values
-        self.ratings_array = self.links[links_name].values
+        self.ratings_array = self.links[links_label].values
         self.N_ratings = max(self.ratings_array)
 
     def init_MAP(self, seed=None):
