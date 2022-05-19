@@ -322,7 +322,7 @@ class nodes_layer:
 
         # create metadata object
         im = inclusive_metadata(meta_name, lambda_meta, Tau)
-        im.q_k_tau(self.K, Tau, 2)
+        # im.q_k_tau(self.K, Tau, 2)
 
         # links and neighbours
         df_dropna = self.df_nodes.dropna(subset=meta_name)
@@ -431,8 +431,19 @@ class BiNet:
         elif isinstance(nodes_a, str):
             self.nodes_b = nodes_layer.create_simple_layer(Kb, links[nodes_b], nodes_b)
 
-        self.links_array = self.links[[nodes_a_name, nodes_b_name]].values
+
+        ## Coding labels
         self.ratings_array = self.links[links_label].values
+        codes = pd.Categorical(self.links[links_label]).codes
+        self.links = self.links.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
+
+        #Links
+        self.links = self.links.join(self.nodes_a[[nodes_a_name,nodes_a_name + "_id"]].set_index(nodes_a_name),on=nodes_a_name)
+        self.links = self.links.join(self.nodes_b[[nodes_b_name,nodes_b_name + "_id"]].set_index(nodes_b_name),on=nodes_b_name)
+        self.links_array = self.links[[nodes_a_name + "_id", nodes_b_name + "_id"]].values
+
+
+
         self.N_ratings = max(self.ratings_array)
 
     def init_MAP(self, seed=None):
@@ -461,7 +472,7 @@ class BiNet:
             meta.q_k_tau = np.array((self.nodes_a.Ka, meta.Tau, 2))
 
         for meta in self.nodes_a.meta_inclusives:
-            meta.q_k_tau = np.array((self.nodes_a.Ka, meta.Tau, 2))
+            meta.q_k_tau = np.array((self.nodes_b.Kb, meta.Tau, 2))
 
         #omega amd equivalents from inclusive metadata
         self.omega = np.array((len(self.nodes_a), len(self.nodes_b), self.nodes_a.Ka, self.nodes_b.Kb))
