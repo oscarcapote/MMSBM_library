@@ -1,19 +1,26 @@
 import numpy as np
 from numba import jit
 
-def init_P_matrix(*shape):
-    """
-    Generates a normalized probability matrix
-    
-    Parameters:
-    -----------
-    shape: int or tuple of ints
-        Dimension of the probability matrix
-    
-    Returns:
-    -------
-    A normalized probability matrix that is normalized along the last axis
-    """
-    P = np.random.rand(*shape)
-    S = P.sum(axis = len(shape)-1)
-    return P/S.reshape((*shape[:-1],-1))
+@jit(nopython=True,locals=dict(i=int64,j=int64,k=int64,l=int64,suma=double))
+def omega_comp_arrays(omega,p_kl,eta,theta,K,L,links_array,links_ratings):
+    #new_omega = np.array(omega)
+    for link  in range(len(links_ratings)):
+        i = links_array[link][0]
+        j = links_array[link][1]
+        rating = links_ratings[link]
+        omega[i,j,:,:] = p_kl[:,:,rating]*(np.expand_dims(theta[i,:], axis=1)@np.expand_dims(eta[j,:],axis=0))
+        suma = omega[i,j,:,:].sum()
+        omega[i,j,:,:] /= suma+1e-16
+    return
+
+@jit(nopython=True,locals=dict(i=int64,a=int64,k=int64,link=int64,suma=double),parallel=True)
+def omega_comp_arrays_exclusive(omega,q_ka,theta,N_nodes,metas_links_arrays_nodes):
+    for j in prange(len(metas_links_arrays_nodes)):
+        i = metas_links_arrays_nodes[j,0]
+        a = metas_links_arrays_nodes[j,1]
+        s = 0
+        for k in range(K):
+            omega[i,a,k] = theta[i,k]*q_ka[k,a]
+            s +=omega[i,a,k]
+        omega[i,a,:] /= s
+    return
