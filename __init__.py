@@ -8,9 +8,7 @@ from copy import deepcopy
 # from numba import jit,prange,int64,double,vectorize,float64
 from time import time
 import os, sys
-import time as time_lib
-import argparse
-import yaml
+from functions import *
 
 
 class metadata_layer:
@@ -120,18 +118,18 @@ class exclusive_metadata(metadata_layer):
 class inclusive_metadata(metadata_layer):
 
     def __init__(self, lambda_meta, meta_name, Tau):
-            """
-            Initialization of the inclusive_metadata class
+        """
+        Initialization of the inclusive_metadata class
 
-            Parameters
-            ----------
-            lambda_meta: float
-                Metadata visibility
-            meta_name: str
-                Name of the metadata column in the node_layer class
-            Tau: int
-                Number of membership groups of this metadata
-            """
+        Parameters
+        ----------
+        lambda_meta: float
+            Metadata visibility
+        meta_name: str
+            Name of the metadata column in the node_layer class
+        Tau: int
+            Number of membership groups of this metadata
+        """
         super().__init__(lambda_meta, meta_name)
         self.Tau = Tau
         # self.zeta = self.zeta(Tau)
@@ -210,7 +208,7 @@ class nodes_layer:
         self.N_meta_inclusive = 0
         self.N_meta = 0
 
-        self.theta = np.random.rand(self.N_nodes, K)
+        self.theta = init_P_matrix(self.N_nodes,self.K)
 
     def read_file(self, filename, separator="\t"):
         return pd.read_csv(filename, sep=separator, engine='python')
@@ -234,10 +232,15 @@ class nodes_layer:
         '''
         if isinstance(nodes_list, list):
             new_df = pd.DataFrame({nodes_name: nodes_list})
+        elif isinstance(nodes_list, pd.Series):
+            new_df = pd.DataFrame(nodes_list)
         elif isinstance(nodes_list, pd.DataFrame):
             new_df = nodes_list
 
         return cls(K, nodes_name, new_df)
+
+    def __str__(self):
+        return self.node_type
 
     def update_N(self, N_nodes):
         '''
@@ -249,7 +252,7 @@ class nodes_layer:
             Number of nodes
         '''
         self.N_nodes = N_nodes
-        self.theta = np.random.rand(N_nodes, self.K)
+        self.theta = init_P_matrix(N_nodes, self.K)
 
     def update_K(self, K):
         '''
@@ -261,7 +264,7 @@ class nodes_layer:
             Number of membership groups of nodes_layer
         '''
         self.K = K
-        self.theta = np.random.rand(self.N_nodes, K)
+        self.theta = init_P_matrix(self.N_nodes, K)
 
     def __len__(self):
         return self.N_nodes
@@ -278,15 +281,20 @@ class nodes_layer:
         lambda_meta: Float
             Value of the metadata visibility
         '''
+
+        df_dropna = self.df_nodes.dropna(subset=[meta_name])
+        observed = df_dropna[str(self)+"_id"].values
+
+
         # encode metadata
         codes = pd.Categorical(self.df_nodes[meta_name]).codes
         self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[meta_name + "_id"]))
 
         # create metadata object
         em = exclusive_metadata(meta_name, lambda_meta)
-        em.links = self.df_nodes[[self.node_type, meta_name]].values
+        em.links = self.df_nodes[[self.node_type + "_id", meta_name + "_id"]].values
         em.N_att = len(set(codes))
-        em.qka = em.init_qka(self.K)
+        # em.qka = em.init_qka(self.K)
 
         # update meta related nodes attributes
         self.meta_exclusives.append(em)
@@ -296,7 +304,7 @@ class nodes_layer:
         meta_neighbours = np.ones(self.N_nodes, dtype=np.int32)
 
         for n in range(self.N_nodes):
-            meta_neighbours[n] = self.df_nodes[self.df_nodes[self.node_type + "_id" ]== n][meta_name + "_id"]
+            meta_neighbours[n] = self.df_nodes[self.df_nodes[self.node_type + "_id" ]== n][meta_name + "_id"]#.values
 
         self.meta_neighbours_exclusives.append(meta_neighbours)
 
@@ -325,18 +333,34 @@ class nodes_layer:
         # im.q_k_tau(self.K, Tau, 2)
 
         # links and neighbours
-        df_dropna = self.df_nodes.dropna(subset=meta_name)
-        observed = df_dropna[self.node_type + "_id"].values  # Nodes with known metadata
+        df_dropna = self.df_nodes.dropna(subset=[meta_name])
+        meta_list = self.df_nodes[meta_name].values
+
+        observed = df_dropna[self.node_type].values  # Nodes with known metadata
+        observed_id = df_dropna[self.node_type + "_id"].values  # Nodes with known metadata
+
 
         # encode metadata
-        meta_neighbours = [[int(j) for j in i.split(separator)] for i in df_dropna[meta_name].values]
+        meta_neighbours = []#[[int(j) for j in i.split(separator)] for i in df_dropna[meta_name].values]#meta connected with 1
+
+        for i in meta_list:
+            if i == None or i == np.NaN or i == pd.NaT:
+                meta_neighbours.append(None)
+            else:
+                meta_neighbours.append([j for j in i.split(separator)])
+
         codes = {}
 
-        for l in range(len(meta_neighbours)):
-            for m in range(len(l)):
-                codes[m] = codes[m].get(len(codes), m)
-
-        im.N_att(len(set(codes)))
+        for l in meta_neighbours:
+            if l == None: continue
+            for m in l:
+                codes[m] = codes.get(m, len(codes))
+                
+        decodes = {codes[i]:i for i in codes}
+        
+        im.codes = codes
+        im.decodes = decodes
+        im.N_att = len(set(codes))
 
         # Links between node and metadata type
         links = np.ones((len(observed) * im.N_att, 2))
@@ -348,8 +372,7 @@ class nodes_layer:
             for a in range(im.N_att):
                 links[index, 0] = o
                 links[index, 1] = a
-
-                if a in meta_neighbours[i]:
+                if decodes[a] in meta_neighbours[i]:
                     labels[index] = 1
 
                 index += 1
@@ -368,7 +391,7 @@ class nodes_layer:
         self.N_meta_inclusive += 1
         self.N_meta += 1
 
-        self.meta_neighbours_inclusives.append(meta_neighbours)
+        self.meta_neighbours_inclusives.append([[codes[m] for m in L] for L in meta_neighbours])
 
 
 class BiNet:
@@ -377,26 +400,28 @@ class BiNet:
 
 
     """
-    def __init__(self, nodes_a, nodes_b, links, links_label,*, Ka=1, nodes_a_name="nodes_a", Kb=1,
+    def __init__(self, links, links_label,*, nodes_a = None, nodes_b = None, Ka=1, nodes_a_name="nodes_a", Kb=1,
                  nodes_b_name="nodes_b", separator="\t"):
-         """
+        """
          Initialization of a BiNet class
 
          Parameters
          -----------
-         nodes_a: nodes_layer, str
-             One of the nodes layer that forms the bipartite network
-             If it is a string, it should contain the directory where the information of the nodes of type a are.
-
-         nodes_b:
-             One of the nodes layer that forms the bipartite network
-             If it is a string, it should contain the directory where the information of the nodes of type b are.
-
          links: str, DataFrame
             DataFrame or directory where the dataframe is. It should contains the links list between nodes_a and nodes_b and their labels.
 
          links_label: str
             Name of the links column where the labels are
+            
+         nodes_a: nodes_layer, str, None
+             One of the nodes layer that forms the bipartite network
+             If it is a string, it should contain the directory where the information of the nodes of type a are.
+             If None, it a simple nodes_layer will be created from the information from links.
+
+         nodes_b: nodes_layer, str, None
+             One of the nodes layer that forms the bipartite network
+             If it is a string, it should contain the directory where the information of the nodes of type b are.
+             If None, it a simple nodes_layer will be created from the information from links.
 
          Ka: int
             Number of membership groups from nodes_a layer
@@ -412,7 +437,7 @@ class BiNet:
 
          separator: str
             Separator of the links DataFrame. Default is \t
-         """
+        """
         if type(links) == type(pd.DataFrame()):
             self.links = links
         elif isinstance(links, str):
@@ -422,29 +447,37 @@ class BiNet:
         # creating first layer class
         if isinstance(nodes_a, nodes_layer):
             self.nodes_a = nodes_a
+            nodes_a_name = str(self.nodes_a)
+            Ka = nodes_a.K
         elif isinstance(nodes_a, str):
-            self.nodes_a = nodes_layer.create_simple_layer(Ka, links[nodes_a], nodes_a)
+            self.nodes_a = nodes_layer(Ka, nodes_a_name, nodes_a)
+        elif  nodes_a == None:
+            self.nodes_a = nodes_layer.create_simple_layer(Ka, self.links[nodes_a_name], nodes_a_name)
 
         # creating second layer class
         if isinstance(nodes_b, nodes_layer):
             self.nodes_b = nodes_b
-        elif isinstance(nodes_a, str):
-            self.nodes_b = nodes_layer.create_simple_layer(Kb, links[nodes_b], nodes_b)
+            nodes_b_name = str(self.nodes_b)
+            Kb = nodes_b.K
+        elif isinstance(nodes_b, str):
+            self.nodes_b = nodes_layer(Kb, nodes_b_name, nodes_b)
+        elif nodes_b == None:
+            self.nodes_b = nodes_layer.create_simple_layer(Kb, self.links[nodes_b_name], nodes_b_name)
 
 
         ## Coding labels
-        self.ratings_array = self.links[links_label].values
         codes = pd.Categorical(self.links[links_label]).codes
         self.links = self.links.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
+        self.labels_array = self.links[links_label + "_id"].values
 
         #Links
-        self.links = self.links.join(self.nodes_a[[nodes_a_name,nodes_a_name + "_id"]].set_index(nodes_a_name),on=nodes_a_name)
-        self.links = self.links.join(self.nodes_b[[nodes_b_name,nodes_b_name + "_id"]].set_index(nodes_b_name),on=nodes_b_name)
+        self.links = self.links.join(self.nodes_a.df_nodes[[nodes_a_name,nodes_a_name + "_id"]].set_index(nodes_a_name),on=nodes_a_name)
+        self.links = self.links.join(self.nodes_b.df_nodes[[nodes_b_name,nodes_b_name + "_id"]].set_index(nodes_b_name),on=nodes_b_name)
         self.links_array = self.links[[nodes_a_name + "_id", nodes_b_name + "_id"]].values
 
 
 
-        self.N_ratings = max(self.ratings_array)
+        self.N_ratings = max(self.labels_array)+1
 
     def init_MAP(self, seed=None):
         '''
@@ -458,35 +491,48 @@ class BiNet:
         '''
         # Probability matrices
         np.random.RandomState(seed)
-        self.pkl = np.array((self.nodes_a.Ka, self.nodes_b.Kb, self.N_ratings))
+        self.pkl = init_P_matrix(self.nodes_a.K, self.nodes_b.K, self.N_ratings)
 
         ## qka
         for meta in self.nodes_a.meta_exclusives:
-            meta.qka = np.array((self.nodes_a.Ka, meta.N_att))
+            meta.qka = init_P_matrix(self.nodes_a.K, meta.N_att)
 
         for meta in self.nodes_b.meta_exclusives:
-            meta.qka = np.array((self.nodes_b.Kb, meta.N_att))
+            meta.qka = init_P_matrix(self.nodes_b.K, meta.N_att)
 
         ## ql_tau
         for meta in self.nodes_a.meta_inclusives:
-            meta.q_k_tau = np.array((self.nodes_a.Ka, meta.Tau, 2))
+            meta.q_k_tau = init_P_matrix(self.nodes_a.K, meta.Tau, 2)
 
         for meta in self.nodes_a.meta_inclusives:
-            meta.q_k_tau = np.array((self.nodes_b.Kb, meta.Tau, 2))
+            meta.q_k_tau = init_P_matrix(self.nodes_b.K, meta.Tau, 2)
 
         #omega amd equivalents from inclusive metadata
-        self.omega = np.array((len(self.nodes_a), len(self.nodes_b), self.nodes_a.Ka, self.nodes_b.Kb))
+        #self.omega = np.array((len(self.nodes_a), len(self.nodes_b), self.nodes_a.Ka, self.nodes_b.Kb))
 
 
-        for meta in self.nodes_a.meta_inclusives:
-            meta.omega = np.array((len(meta.nodes_a), len(self.nodes_a), meta.Tau, self.nodes_a.Ka))
+#         for meta in self.nodes_a.meta_inclusives:
+#             meta.omega = np.array((len(meta.nodes_a), len(self.nodes_a), meta.Tau, self.nodes_a.Ka))
 
-        for meta in self.nodes_b.meta_inclusives:
-            meta.omega = np.array((len(meta.nodes_b), len(self.nodes_b), meta.Tau, self.nodes_b.Kb))
+#         for meta in self.nodes_b.meta_inclusives:
+#             meta.omega = np.array((len(meta.nodes_b), len(self.nodes_b), meta.Tau, self.nodes_b.Kb))
 
         #creating arrays with the denominator (that are constants) of each node in both layers and em layers
-        self.node_a.denominators = np.zeros(len(self.nodes_a))
+        self.nodes_a.denominators = np.zeros(len(self.nodes_a))
 
+        self.neighbours_nodes_a = [] #list of list of neighbours
+        for node in range(len(self.nodes_a)):
+            #neighbours in BiNet
+            self.neighbours_nodes_a.append(self.links[self.links[str(self.nodes_a)+"_id"] == node][str(self.nodes_b)+"_id"].values)
+            self.nodes_a.denominators[node] += len(self.neighbours_nodes_a[-1])
+
+            #neighbours in meta exclusives
+            #for i, meta in enumerate(self.nodes_a.meta_exclusives):
+                #self.node_a.denominators[node] += meta.lambda_metas*
+
+
+            #neighbours in meta inclusives
+            # for meta in self.nodes_b.meta_exclusives:
 
 
         def MAP_step(N_steps=1):
