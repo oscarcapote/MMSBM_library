@@ -14,6 +14,7 @@ def init_P_matrix(*shape):
     -------
     A normalized probability matrix that is normalized along the last axis
     """
+    print(shape)
     P = np.random.rand(*shape)
     S = P.sum(axis = len(shape)-1)
     return P/S.reshape((*shape[:-1],-1))

@@ -136,13 +136,12 @@ class inclusive_metadata(metadata_layer):
 
     @property
     def zeta(self):
-        return self._zeta
+        return self.zeta
 
     @zeta.setter
     def zeta(self, Tau):
-        if Tau <= 0: raise ValueError("Value of Tau must be positive!")
-        self.zeta = np.random.rand(self.N_att, Tau)
-        return self._zeta
+        self.zeta = zeta
+        return self.zeta
 
     @property
     def q_k_tau(self):
@@ -355,9 +354,9 @@ class nodes_layer:
             if l == None: continue
             for m in l:
                 codes[m] = codes.get(m, len(codes))
-                
+
         decodes = {codes[i]:i for i in codes}
-        
+
         im.codes = codes
         im.decodes = decodes
         im.N_att = len(set(codes))
@@ -412,7 +411,7 @@ class BiNet:
 
          links_label: str
             Name of the links column where the labels are
-            
+
          nodes_a: nodes_layer, str, None
              One of the nodes layer that forms the bipartite network
              If it is a string, it should contain the directory where the information of the nodes of type a are.
@@ -470,6 +469,8 @@ class BiNet:
         self.links = self.links.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
         self.labels_array = self.links[links_label + "_id"].values
 
+        
+        
         #Links
         self.links = self.links.join(self.nodes_a.df_nodes[[nodes_a_name,nodes_a_name + "_id"]].set_index(nodes_a_name),on=nodes_a_name)
         self.links = self.links.join(self.nodes_b.df_nodes[[nodes_b_name,nodes_b_name + "_id"]].set_index(nodes_b_name),on=nodes_b_name)
@@ -490,9 +491,16 @@ class BiNet:
 
         '''
         # Probability matrices
-        np.random.RandomState(seed)
-        self.pkl = init_P_matrix(self.nodes_a.K, self.nodes_b.K, self.N_ratings)
+        # np.random.RandomState(seed)
 
+        #BiNet matrices
+        print((self.nodes_a.K, self.nodes_b.K, self.N_ratings))
+        self.pkl = init_P_matrix(self.nodes_a.K, self.nodes_b.K, self.N_ratings)
+        print("aqui1",self.pkl.shape)
+        #self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links_array,self.labels_array)
+
+        print("aqui1")
+        #Metadata
         ## qka
         for meta in self.nodes_a.meta_exclusives:
             meta.qka = init_P_matrix(self.nodes_a.K, meta.N_att)
@@ -500,12 +508,15 @@ class BiNet:
         for meta in self.nodes_b.meta_exclusives:
             meta.qka = init_P_matrix(self.nodes_b.K, meta.N_att)
 
-        ## ql_tau
+        print("aqui2")
+        ## ql_tau and omegas omega_comp_arrays(omega,p_kl,theta,eta,K,L,links_array,links_ratings):
         for meta in self.nodes_a.meta_inclusives:
             meta.q_k_tau = init_P_matrix(self.nodes_a.K, meta.Tau, 2)
+            meta.omega = omega_comp_arrays(len(self.nodes_a),len(meta),meta.q_k_tau,self.nodes_a.theta,meta.zeta,self.nodes_a.K,meta.Tau,meta.links,meta.labels_array)
 
-        for meta in self.nodes_a.meta_inclusives:
+        for meta in self.nodes_b.meta_inclusives:
             meta.q_k_tau = init_P_matrix(self.nodes_b.K, meta.Tau, 2)
+            meta.omega = omega_comp_arrays(len(self.nodes_b),len(meta),meta.q_k_tau,self.nodes_b.theta,meta.zeta,self.nodes_b.K,meta.Tau,meta.links,meta.labels_array)
 
         #omega amd equivalents from inclusive metadata
         #self.omega = np.array((len(self.nodes_a), len(self.nodes_b), self.nodes_a.Ka, self.nodes_b.Kb))
