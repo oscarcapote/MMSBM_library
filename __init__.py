@@ -8,7 +8,7 @@ from copy import deepcopy
 # from numba import jit,prange,int64,double,vectorize,float64
 from time import time
 import os, sys
-from functions import *
+from MMSBM_library.functions import *
 
 
 class metadata_layer:
@@ -469,8 +469,8 @@ class BiNet:
         self.links = self.links.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
         self.labels_array = self.links[links_label + "_id"].values
 
-        
-        
+
+
         #Links
         self.links = self.links.join(self.nodes_a.df_nodes[[nodes_a_name,nodes_a_name + "_id"]].set_index(nodes_a_name),on=nodes_a_name)
         self.links = self.links.join(self.nodes_b.df_nodes[[nodes_b_name,nodes_b_name + "_id"]].set_index(nodes_b_name),on=nodes_b_name)
