@@ -306,7 +306,7 @@ class nodes_layer:
 
         self.meta_neighbours_exclusives.append(meta_neighbours)
 
-    def add_inclusive_metadata(self, meta_name, lambda_meta, Tau, separator="|"):
+    def add_inclusive_metadata(self, lambda_meta, meta_name, Tau, separator="|"):
         '''
         Add inclusive_metadata object to node_layer object
 
