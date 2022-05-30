@@ -77,9 +77,6 @@ class metadata_layer:
     def __len__(self):
         return self.N_att
     #
-    # def add_links(self, links):
-    #     self.links(links)
-    #     self.N_links = len(self.links)
 
 
 class exclusive_metadata(metadata_layer):
@@ -201,6 +198,7 @@ class nodes_layer:
         self.meta_neighbours_inclusives = []  # all neighbours (connected and not) of inclusive metadata
         self.inclusive_linked = []  # metadata inclusive for each node
         self.nodes_observed_inclusive = []
+        self.has_meta = False  #Boolean that tells you if you have metadata initialized with non 0 values of lambda
 
         self.N_nodes = len(codes)
         self.N_meta_exclusive = 0
@@ -268,7 +266,7 @@ class nodes_layer:
     def __len__(self):
         return self.N_nodes
 
-    def add_exclusive_metadata(self, meta_name, lambda_meta):
+    def add_exclusive_metadata(self, lambda_meta, meta_name):
         '''
         Add exclusive_metadata object to node_layer object
 
@@ -284,13 +282,14 @@ class nodes_layer:
         df_dropna = self.df_nodes.dropna(subset=[meta_name])
         observed = df_dropna[str(self)+"_id"].values
 
+        if lambda_meta>1.e-16:self.has_meta = True
 
         # encode metadata
         codes = pd.Categorical(self.df_nodes[meta_name]).codes
         self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[meta_name + "_id"]))
 
         # create metadata object
-        em = exclusive_metadata(meta_name, lambda_meta)
+        em = exclusive_metadata(lambda_meta, meta_name)
         em.links = self.df_nodes[[self.node_type + "_id", meta_name + "_id"]].values
         em.N_att = len(set(codes))
         # em.qka = em.init_qka(self.K)
@@ -328,8 +327,8 @@ class nodes_layer:
         '''
 
         # create metadata object
-        im = inclusive_metadata(meta_name, lambda_meta, Tau)
-        # im.q_k_tau(self.K, Tau, 2)
+        im = inclusive_metadata(lambda_meta, meta_name, Tau)
+        # im.q_k_tau(self.K, Tau, 2)lambda_meta, meta_name, Tau
 
         # links and neighbours
         df_dropna = self.df_nodes.dropna(subset=[meta_name])
@@ -339,6 +338,7 @@ class nodes_layer:
         observed_id = df_dropna[self.node_type + "_id"].values  # Nodes with known metadata
 
 
+        if lambda_meta>1.e-16:self.has_meta = True
         # encode metadata
         meta_neighbours = []#[[int(j) for j in i.split(separator)] for i in df_dropna[meta_name].values]#meta connected with 1
 
@@ -465,16 +465,16 @@ class BiNet:
 
 
         ## Coding labels
-        codes = pd.Categorical(self.links[links_label]).codes
-        self.links = self.links.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
-        self.labels_array = self.links[links_label + "_id"].values
+        codes = pd.Categorical(self.links_df[links_label]).codes
+        self.links_df = self.links_df.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
+        self.labels_array = self.links_df[links_label + "_id"].values
 
 
 
         #Links
-        self.links = self.links.join(self.nodes_a.df_nodes[[nodes_a_name,nodes_a_name + "_id"]].set_index(nodes_a_name),on=nodes_a_name)
-        self.links = self.links.join(self.nodes_b.df_nodes[[nodes_b_name,nodes_b_name + "_id"]].set_index(nodes_b_name),on=nodes_b_name)
-        self.links_array = self.links[[nodes_a_name + "_id", nodes_b_name + "_id"]].values
+        self.links_df = self.links_df.join(self.nodes_a.df_nodes[[nodes_a_name,nodes_a_name + "_id"]].set_index(nodes_a_name),on=nodes_a_name)
+        self.links_df = self.links_df.join(self.nodes_b.df_nodes[[nodes_b_name,nodes_b_name + "_id"]].set_index(nodes_b_name),on=nodes_b_name)
+        self.links = self.links_df[[nodes_a_name + "_id", nodes_b_name + "_id"]].values
 
 
 
