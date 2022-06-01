@@ -438,9 +438,9 @@ class BiNet:
             Separator of the links DataFrame. Default is \t
         """
         if type(links) == type(pd.DataFrame()):
-            self.links = links
+            self.links_df = links
         elif isinstance(links, str):
-            self.links = pd.read_csv(links, sep=separator, engine='python')
+            self.links_df = pd.read_csv(links, sep=separator, engine='python')
 
 
         # creating first layer class
