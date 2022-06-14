@@ -478,8 +478,8 @@ class BiNet:
 
 
         #observed nodes in each layer
-        self.observed_nodes_a = np.unique(votes.links[:,0])
-        self.observed_nodes_b = np.unique(votes.links[:,1])
+        self.observed_nodes_a = np.unique(self.links[:,0])
+        self.observed_nodes_b = np.unique(self.links[:,1])
 
         self.N_ratings = max(self.labels_array)+1
 
@@ -504,12 +504,14 @@ class BiNet:
 
         # print("aqui1")
         #Metadata
-        ## qka
+        ## qka and omegas
         for meta in self.nodes_a.meta_exclusives:
             meta.qka = init_P_matrix(self.nodes_a.K, meta.N_att)
+            meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,self.nodes_a.theta,len(self.nodes_a),self.nodes_a.K,meta.links)
 
         for meta in self.nodes_b.meta_exclusives:
             meta.qka = init_P_matrix(self.nodes_b.K, meta.N_att)
+            meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,self.nodes_b.theta,len(self.nodes_b),self.nodes_b.K,meta.links)
 
         # print("aqui2")
         ## ql_tau and omegas omega_comp_arrays(omega,p_kl,theta,eta,K,L,links_array,links_ratings):
@@ -532,6 +534,8 @@ class BiNet:
 #             meta.omega = np.array((len(meta.nodes_b), len(self.nodes_b), meta.Tau, self.nodes_b.Kb))
 
         #creating arrays with the denominator (that are constants) of each node in both layers and em layers
+
+        ##nodes a
         self.nodes_a.denominators = np.zeros(len(self.nodes_a))
 
         self.neighbours_nodes_a = [] #list of list of neighbours
@@ -540,10 +544,36 @@ class BiNet:
             self.neighbours_nodes_a.append(self.links_df[self.links_df[str(self.nodes_a)+"_id"] == node][str(self.nodes_b)+"_id"].values)
             self.nodes_a.denominators[node] += len(self.neighbours_nodes_a[-1])
 
-            #neighbours in meta exclusives
+        #neighbours in meta exclusives
+        for i, meta in enumerate(self.nodes_a.meta_exclusives):
+            for node in meta.links[:,0]:
+                self.nodes_a.denominators[node] += meta.lambda_meta
+
+        #neighbours in meta inclusives
+        for node in range(len(self.nodes_a)):
+            for i, meta in enumerate(self.nodes_a.meta_inclusives):
+                self.nodes_a.denominators[node] += meta.lambda_meta*len(self.links[self.links[:,0]==node,:])
             #for i, meta in enumerate(self.nodes_a.meta_exclusives):
                 #self.node_a.denominators[node] += meta.lambda_metas*
 
+        ##nodes b
+        self.nodes_b.denominators = np.zeros(len(self.nodes_b))
+
+        self.neighbours_nodes_b = [] #list of list of neighbours
+        for node in range(len(self.nodes_b)):
+            #neighbours in BiNet
+            self.neighbours_nodes_b.append(self.links_df[self.links_df[str(self.nodes_b)+"_id"] == node][str(self.nodes_a)+"_id"].values)
+            self.nodes_b.denominators[node] += len(self.neighbours_nodes_b[-1])
+
+        #neighbours in meta exclusives
+        for i, meta in enumerate(self.nodes_b.meta_exclusives):
+            for node in meta.links[:,0]:
+                self.nodes_b.denominators[node] += meta.lambda_meta
+
+        #neighbours in meta inclusives
+        for node in range(len(self.nodes_b)):
+            for i, meta in enumerate(self.nodes_b.meta_inclusives):
+                self.nodes_b.denominators[node] += meta.lambda_meta*len(self.links[self.links[:,0]==node,:])
 
             #neighbours in meta inclusives
             # for meta in self.nodes_b.meta_exclusives:
