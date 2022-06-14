@@ -451,7 +451,7 @@ class BiNet:
         elif isinstance(nodes_a, str):
             self.nodes_a = nodes_layer(Ka, nodes_a_name, nodes_a)
         elif  nodes_a == None:
-            self.nodes_a = nodes_layer.create_simple_layer(Ka, self.links[nodes_a_name], nodes_a_name)
+            self.nodes_a = nodes_layer.create_simple_layer(Ka, self.links_df[nodes_a_name], nodes_a_name)
 
         # creating second layer class
         if isinstance(nodes_b, nodes_layer):
@@ -461,7 +461,7 @@ class BiNet:
         elif isinstance(nodes_b, str):
             self.nodes_b = nodes_layer(Kb, nodes_b_name, nodes_b)
         elif nodes_b == None:
-            self.nodes_b = nodes_layer.create_simple_layer(Kb, self.links[nodes_b_name], nodes_b_name)
+            self.nodes_b = nodes_layer.create_simple_layer(Kb, self.links_df[nodes_b_name], nodes_b_name)
 
 
         ## Coding labels
@@ -477,6 +477,9 @@ class BiNet:
         self.links = self.links_df[[nodes_a_name + "_id", nodes_b_name + "_id"]].values
 
 
+        #observed nodes in each layer
+        self.observed_nodes_a = np.unique(votes.links[:,0])
+        self.observed_nodes_b = np.unique(votes.links[:,1])
 
         self.N_ratings = max(self.labels_array)+1
 
@@ -496,10 +499,10 @@ class BiNet:
         #BiNet matrices
         print((self.nodes_a.K, self.nodes_b.K, self.N_ratings))
         self.pkl = init_P_matrix(self.nodes_a.K, self.nodes_b.K, self.N_ratings)
-        print("aqui1",self.pkl.shape)
-        #self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links_array,self.labels_array)
+        # print("aqui1",self.pkl.shape)
+        self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links,self.labels_array)
 
-        print("aqui1")
+        # print("aqui1")
         #Metadata
         ## qka
         for meta in self.nodes_a.meta_exclusives:
@@ -508,7 +511,7 @@ class BiNet:
         for meta in self.nodes_b.meta_exclusives:
             meta.qka = init_P_matrix(self.nodes_b.K, meta.N_att)
 
-        print("aqui2")
+        # print("aqui2")
         ## ql_tau and omegas omega_comp_arrays(omega,p_kl,theta,eta,K,L,links_array,links_ratings):
         for meta in self.nodes_a.meta_inclusives:
             meta.q_k_tau = init_P_matrix(self.nodes_a.K, meta.Tau, 2)
@@ -534,7 +537,7 @@ class BiNet:
         self.neighbours_nodes_a = [] #list of list of neighbours
         for node in range(len(self.nodes_a)):
             #neighbours in BiNet
-            self.neighbours_nodes_a.append(self.links[self.links[str(self.nodes_a)+"_id"] == node][str(self.nodes_b)+"_id"].values)
+            self.neighbours_nodes_a.append(self.links_df[self.links_df[str(self.nodes_a)+"_id"] == node][str(self.nodes_b)+"_id"].values)
             self.nodes_a.denominators[node] += len(self.neighbours_nodes_a[-1])
 
             #neighbours in meta exclusives
