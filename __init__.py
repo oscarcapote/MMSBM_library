@@ -469,13 +469,18 @@ class BiNet:
         self.links_df = self.links_df.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
         self.labels_array = self.links_df[links_label + "_id"].values
 
+        print("labels y arrays:",len(self.labels_array),len(self.links_df),len(codes))
+
 
 
         #Links
         self.links_df = self.links_df.join(self.nodes_a.df_nodes[[nodes_a_name,nodes_a_name + "_id"]].set_index(nodes_a_name),on=nodes_a_name)
         self.links_df = self.links_df.join(self.nodes_b.df_nodes[[nodes_b_name,nodes_b_name + "_id"]].set_index(nodes_b_name),on=nodes_b_name)
+
+        self.links_df = self.links_df.drop_duplicates()
         self.links = self.links_df[[nodes_a_name + "_id", nodes_b_name + "_id"]].values
 
+        print("labels y arrays2:",len(self.labels_array),len(self.links_df),len(codes))
 
         #observed nodes in each layer
         self.observed_nodes_a = np.unique(self.links[:,0])
