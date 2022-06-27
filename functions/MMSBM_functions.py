@@ -33,6 +33,55 @@ def omega_comp_arrays_exclusive(q_ka,N_att,theta,N_nodes,K,metas_links_arrays_no
     return omega
 
 
+def theta_comp_arrays_multilayer(BiNet,layer = "a"):
+    #new_theta = np.zeros((N_nodes,K))
+
+    if layer == "a":
+        na = BiNet.nodes_a
+        observed = BiNet.observed_nodes_a
+        non_observed = BiNet.non_observed_nodes_a
+    elif layer == "b":
+        na = BiNet.nodes_b
+        observed = BiNet.observed_nodes_b
+        non_observed = BiNet.non_observed_nodes_b
+    else: raise TypeError("layer must be 'a' or 'b'")
+
+    #Nodes b
+#     nb = BiNet.nodes_b
+
+    ##Binet
+    new_theta = np.zeros((len(na),na.K))
+    if layer == "a":
+        new_theta[BiNet.observed_nodes_a,:] = sum_omega_13(BiNet.omega[BiNet.observed_nodes_a[:,np.newaxis],BiNet.observed_nodes_b,:,:])#BiNet.omega.sum(axis=1).sum(axis=2)
+    else:
+        new_theta[BiNet.observed_nodes_b,:] = sum_omega_02(BiNet.omega[BiNet.observed_nodes_a[:,np.newaxis],BiNet.observed_nodes_b,:,:])#BiNet.omega.sum(axis=1).sum(axis=2)
+
+    ##Meta exclusive
+    N_metas = na.N_meta_exclusive
+
+    for meta in na.meta_exclusives:
+        new_theta += sum_omega_ax_lambda(meta.omega,1,meta.lambda_meta)
+#         new_theta += meta.omega.sum(axis=1)*meta.lambda_meta
+
+
+    ##Meta inclusive
+    N_metas = na.N_meta_inclusive
+
+    for meta in na.meta_inclusives:
+        new_theta += sum_omega_13_lambda(meta.omega,meta.lambda_meta)#meta.omega.sum(axis=1).sum(axis=2)*meta.lambda_metas
+
+    ##Denominator
+    new_theta /= na.denominators
+
+    ##if no metadata we put means in cold starts
+    if not na.has_metas and len(non_observed)!=0:
+        means = np.sum(new_theta[observed,:],axis=0)/float(len(observed))
+        new_theta[non_observed] = means
+        
+    return new_theta
+
+
+
 if not numba_imported:
     def A_lambda(A,lambda_val):
         """
