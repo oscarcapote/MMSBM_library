@@ -77,9 +77,28 @@ def theta_comp_arrays_multilayer(BiNet,layer = "a"):
     if not na.has_metas and len(non_observed)!=0:
         means = np.sum(new_theta[observed,:],axis=0)/float(len(observed))
         new_theta[non_observed] = means
-        
+
     return new_theta
 
+
+
+
+def q_ka_comp_arrays(omega,K,links_array,N_att):
+    """
+    It computes the probability matrix between nodes in group k and attribute a
+    """
+    q_ka2 = np.zeros((K,len(N_att)))
+
+    for link  in range(len(links_array)):
+        i = links_array[link][0]
+        a = links_array[link][1]
+        for k in range(K):
+            #print(i,k,a)
+            q_ka2[k,a] = omega[i,a,k]#/att_elements[a]
+
+    suma = np.sum(q_ka2,axis =1)
+    q_ka2  /=suma[:,np.newaxis]
+    return q_ka2
 
 
 if not numba_imported:
