@@ -198,7 +198,7 @@ class nodes_layer:
         self.meta_neighbours_inclusives = []  # all neighbours (connected and not) of inclusive metadata
         self.inclusive_linked = []  # metadata inclusive for each node
         self.nodes_observed_inclusive = []
-        self.has_meta = False  #Boolean that tells you if you have metadata initialized with non 0 values of lambda
+        self.has_metas = False  #Boolean that tells you if you have metadata initialized with non 0 values of lambda
 
         self.N_nodes = len(codes)
         self.N_meta_exclusive = 0
@@ -282,7 +282,7 @@ class nodes_layer:
         df_dropna = self.df_nodes.dropna(subset=[meta_name])
         observed = df_dropna[str(self)+"_id"].values
 
-        if lambda_meta>1.e-16:self.has_meta = True
+        if lambda_meta>1.e-16:self.has_metas = True
 
         # encode metadata
         codes = pd.Categorical(self.df_nodes[meta_name]).codes
@@ -338,7 +338,7 @@ class nodes_layer:
         observed_id = df_dropna[self.node_type + "_id"].values  # Nodes with known metadata
 
 
-        if lambda_meta>1.e-16:self.has_meta = True
+        if lambda_meta>1.e-16:self.has_metas = True
         # encode metadata
         meta_neighbours = []#[[int(j) for j in i.split(separator)] for i in df_dropna[meta_name].values]#meta connected with 1
 
@@ -469,7 +469,6 @@ class BiNet:
         self.links_df = self.links_df.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
         self.labels_array = self.links_df[links_label + "_id"].values
 
-        print("labels y arrays:",len(self.labels_array),len(self.links_df),len(codes))
 
 
 
@@ -480,11 +479,14 @@ class BiNet:
         self.links_df = self.links_df.drop_duplicates()
         self.links = self.links_df[[nodes_a_name + "_id", nodes_b_name + "_id"]].values
 
-        print("labels y arrays2:",len(self.labels_array),len(self.links_df),len(codes))
 
         #observed nodes in each layer
         self.observed_nodes_a = np.unique(self.links[:,0])
         self.observed_nodes_b = np.unique(self.links[:,1])
+
+        #non_observed nodes in each layer
+        self.non_observed_nodes_a = np.array([i for i in range(len(self.nodes_a)) if i not in self.observed_nodes_a])
+        self.non_observed_nodes_b = np.array([i for i in range(len(self.nodes_b)) if i not in self.observed_nodes_b])
 
         self.N_ratings = max(self.labels_array)+1
 
@@ -561,6 +563,8 @@ class BiNet:
             #for i, meta in enumerate(self.nodes_a.meta_exclusives):
                 #self.node_a.denominators[node] += meta.lambda_metas*
 
+        self.nodes_a.denominators = self.nodes_a.denominators[:,np.newaxis]
+
         ##nodes b
         self.nodes_b.denominators = np.zeros(len(self.nodes_b))
 
@@ -581,6 +585,8 @@ class BiNet:
                 self.nodes_b.denominators[node] += meta.lambda_meta*len(self.links[self.links[:,0]==node,:])
 
             #neighbours in meta inclusives
+
+        self.nodes_b.denominators = self.nodes_b.denominators[:,np.newaxis]
             # for meta in self.nodes_b.meta_exclusives:
 
 
