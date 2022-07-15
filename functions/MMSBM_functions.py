@@ -68,7 +68,8 @@ def theta_comp_arrays_multilayer(BiNet,layer = "a"):
     N_metas = na.N_meta_inclusive
 
     for meta in na.meta_inclusives:
-        new_theta += sum_omega_13_lambda(meta.omega,meta.lambda_meta)#meta.omega.sum(axis=1).sum(axis=2)*meta.lambda_metas
+        new_theta += sum_omega_13_lambda(meta.omega,meta.lambda_meta)#meta.omega.sum(axis=1).sum(axis=2)*meta.lambda_meta
+        # new_theta += meta.omega.sum(axis=1).sum(axis=2)*meta.lambda_meta
 
     ##Denominator
     new_theta /= na.denominators
@@ -87,7 +88,7 @@ def q_ka_comp_arrays(omega,K,links_array,N_att):
     """
     It computes the probability matrix between nodes in group k and attribute a
     """
-    q_ka2 = np.zeros((K,len(N_att)))
+    q_ka2 = np.zeros((K,N_att))
 
     for link  in range(len(links_array)):
         i = links_array[link][0]
@@ -99,6 +100,14 @@ def q_ka_comp_arrays(omega,K,links_array,N_att):
     suma = np.sum(q_ka2,axis =1)
     q_ka2  /=suma[:,np.newaxis]
     return q_ka2
+
+def theta_meta(theta,meta):
+    for j,veins in enumerate(veins_items_array):
+        for l in range(L):
+            #eta_jl = eta[j,l]
+            new_eta[j,l] = np.sum(omega[veins,j,:,l])
+            new_eta[j,l] /= N_veins_items[j]
+    return new_eta
 
 
 if not numba_imported:
