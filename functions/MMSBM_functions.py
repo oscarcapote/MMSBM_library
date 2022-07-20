@@ -8,7 +8,6 @@ except ImportError:
 # @jit(nopython=True,locals=dict(i=int64,j=int64,L=int64,K=int64,Na=int64,Nb=int64,suma=double))
 def omega_comp_arrays(Na,Nb,p_kl,theta,eta,K,L,links_array,links_ratings):
     #new_omega = np.array(omega)
-    print((Na,Nb,K,L))
     omega = np.zeros((Na,Nb,K,L))
     for link  in range(len(links_ratings)):
         i = links_array[link][0]
@@ -82,7 +81,16 @@ def theta_comp_arrays_multilayer(BiNet,layer = "a"):
     return new_theta
 
 
-
+def theta_comp_array(N_nodes,K,omega,denominators,links,masks_list):
+    """
+    It computes the membership matrix of a nodes layer with no metadata
+    """
+    theta = np.empty((N_nodes,K))
+    theta_unfold = omega[links[:,0],links[:,1],:,:].sum(1)
+    for att,mask in enumerate(masks_list):
+        theta[att,:] = theta_unfold[mask].sum(0)
+    theta /= denominators#[:,np.newaxis]
+    return theta
 
 def q_ka_comp_arrays(K,N_att,omega,links,masks_att_list):
     """
@@ -96,6 +104,20 @@ def q_ka_comp_arrays(K,N_att,omega,links,masks_att_list):
     suma = np.sum(qka2,axis =1)
     qka2  /=suma[:,np.newaxis]
     return qka2
+
+def p_kl_comp_arrays(Ka,Kb,N_labels, links, omega, mask_list):
+    """
+    It computes the probability matrix between nodes_a and nodes_b in a BiNet network
+    """
+    p_kl = np.zeros((Ka,Kb,N_labels))
+    sum_list = omega[links[:,0],links[:,1],:,:]
+    for l,mask in enumerate(mask_list):
+        p_kl[:,:,l] = sum_list[mask].sum(0)
+    suma = p_kl.sum(axis=2)
+    p_kl[:,:,:] /= (suma[:,:,np.newaxis]+1e-16)
+    return p_kl
+
+
 
 def theta_meta(theta,meta):
     for j,veins in enumerate(veins_items_array):
