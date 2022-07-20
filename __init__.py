@@ -286,6 +286,13 @@ class nodes_layer:
         em.N_att = len(set(codes))
         # em.qka = em.init_qka(self.K)
 
+        #list of arrays of ints where the array number att has all the index positions of links that connects the attribute att
+        em.masks_att_list = []
+        for r in range(em.N_att):
+            mask = np.argwhere(em.links[:,1]==r)[:,0]
+            em.masks_att_list.append(mask)
+
+
         # update meta related nodes attributes
         self.meta_exclusives.append(em)
         self.N_meta_exclusive += 1
@@ -370,6 +377,13 @@ class nodes_layer:
 
         im.links = links
         im.labels = labels
+        im.N_labels = 2#connected or disconnected
+
+        #masks list to know wich links have label r (that is the index of the list)
+        im.masks_label_list = []
+        for r in range(2):
+            mask = np.argwhere(im.labels==r)[:,0]
+            im.masks_label_list.append(mask)
 
         # codes = pd.Categorical(self.df_nodes[meta_name]).codes
         # self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[meta_name+"_id"]))
@@ -480,7 +494,16 @@ class BiNet:
         self.non_observed_nodes_a = np.array([i for i in range(len(self.nodes_a)) if i not in self.observed_nodes_a])
         self.non_observed_nodes_b = np.array([i for i in range(len(self.nodes_b)) if i not in self.observed_nodes_b])
 
-        self.N_ratings = max(self.labels_array)+1
+
+
+        self.N_labels = max(self.labels_array)+1
+
+        #masks list to know wich links have label r (that is the index of the list)
+        self.masks_label_list = []
+        for r in range(self.N_labels):
+            mask = np.argwhere(self.labels_array==r)[:,0]
+            self.masks_label_list.append(mask)
+
 
     def init_MAP(self, seed=None):
         '''
@@ -496,8 +519,7 @@ class BiNet:
         # np.random.RandomState(seed)
 
         #BiNet matrices
-        print((self.nodes_a.K, self.nodes_b.K, self.N_ratings))
-        self.pkl = init_P_matrix(self.nodes_a.K, self.nodes_b.K, self.N_ratings)
+        self.pkl = init_P_matrix(self.nodes_a.K, self.nodes_b.K, self.N_labels)
         # print("aqui1",self.pkl.shape)
         self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links,self.labels_array)
 
@@ -608,8 +630,14 @@ class BiNet:
 
             ##nodes_a exclusive_meta update
             for i, meta in enumerate(na.meta_exclusives):
-                meta.qka = q_ka_comp_arrays(meta.omega,na.K,meta.links,meta.N_att)
+                meta.qka = q_ka_comp_arrays(na.K,meta.N_att,meta.omega,meta.links,meta.masks_att_list)
                 meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,self.nodes_a.theta,len(self.nodes_a),self.nodes_a.K,meta.links)
+
+
+            ##nodes_a inclusive_meta update
+            # for i, meta in enumerate(na.meta_inclusives):
+            #     # meta.qka = q_ka_comp_arrays(meta.omega,na.K,meta.links,meta.N_att)
+            #     meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,self.nodes_a.theta,len(self.nodes_a),self.nodes_a.K,meta.links)
 
 
 
