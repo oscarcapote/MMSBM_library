@@ -375,9 +375,18 @@ class nodes_layer:
 
                 index += 1
 
+        #list where the index is the attribute and the element is an array of the nodes that are connected to the same attribute
+        im.neighbours_meta = []
+        for att in range(im.N_att):
+            im.neighbours_meta.append(links[links[:,1]==att][:,0])
+
+        im.masks_att_list = [np.argwhere(links[:,1]==att)[:,0] for att in range(len(im))]
+
         im.links = links
         im.labels = labels
         im.N_labels = 2#connected or disconnected
+        #nodes neigbours
+
 
         #masks list to know wich links have label r (that is the index of the list)
         im.masks_label_list = []
@@ -523,7 +532,7 @@ class BiNet:
         # print("aqui1",self.pkl.shape)
         self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links,self.labels_array)
 
-        # print("aqui1")
+
         #Metadata
         ## qka and omegas
         for meta in self.nodes_a.meta_exclusives:
@@ -544,7 +553,8 @@ class BiNet:
             meta.denominators = np.zeros(len(meta))
 
             for m in range(len(meta)):
-                meta.denominators[m] += len(meta.links[meta.links[:,1]==m,:])
+                meta.denominators[m] += len(meta.neighbours_meta[m])
+            meta.denominators = meta.denominators[:,np.newaxis]
 
 
 
@@ -557,7 +567,7 @@ class BiNet:
             meta.denominators = np.zeros(len(meta))
 
             for m in range(len(meta)):
-                meta.denominators[m] += len(meta.links[meta.links[:,1]==m,:])
+                meta.denominators[m] += len(meta.neighbours_meta)
 
 
         #creating arrays with the denominator (that are constants) of each node in both layers and em layers
@@ -635,9 +645,10 @@ class BiNet:
 
 
             ##nodes_a inclusive_meta update
-            # for i, meta in enumerate(na.meta_inclusives):
-            #     # meta.qka = q_ka_comp_arrays(meta.omega,na.K,meta.links,meta.N_att)
-            #     meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,self.nodes_a.theta,len(self.nodes_a),self.nodes_a.K,meta.links)
+            for i, meta in enumerate(na.meta_inclusives):
+                meta.zeta = theta_comp_array(meta.N_att,meta.Tau,meta.omega,meta.denominators,meta.links,meta.masks_att_list)#(meta.N_att,meta.Tau,meta.omega,meta.links,meta.masks_att_list)
+                meta.q_k_tau = p_kl_comp_arrays(na.K,meta.Tau,2,meta.links,meta.omega,meta.masks_label_list)
+                meta.omega = omega_comp_arrays(len(self.nodes_a),len(meta),meta.q_k_tau,self.nodes_a.theta,meta.zeta,self.nodes_a.K,meta.Tau,meta.links,meta.labels)
 
 
 
@@ -648,3 +659,12 @@ class BiNet:
             for i, meta in enumerate(nb.meta_exclusives):
                 meta.qka = q_ka_comp_arrays(meta.omega,nb.K,meta.links,meta.N_att)
                 meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,nb.theta,len(nb),nb.K,meta.links)
+
+            ##nodes_b inclusive_meta update
+            for i, meta in enumerate(nb.meta_inclusives):
+                meta.zeta = theta_comp_array(meta.N_att,meta.Tau,meta.omega,meta.denominbtors,meta.links,meta.masks_att_list)#(meta.N_att,meta.Tau,meta.omega,meta.links,meta.masks_att_list)
+                meta.q_k_tau = p_kl_comp_arrays(nb.K,meta.Tau,2,meta.links,meta.omega,meta.masks_label_list)
+                meta.omega = omega_comp_arrays(len(self.nodes_b),len(meta),meta.q_k_tau,self.nodes_b.theta,meta.zeta,self.nodes_b.K,meta.Tau,meta.links,meta.labels)
+
+            self.pkl = p_kl_comp_arrays(na.K,nb.K,self.N_labels, self.links, self.omega, self.masks_label_list)
+            self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links,self.labels_array)
