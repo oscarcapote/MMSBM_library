@@ -84,22 +84,18 @@ def theta_comp_arrays_multilayer(BiNet,layer = "a"):
 
 
 
-def q_ka_comp_arrays(omega,K,links_array,N_att):
+def q_ka_comp_arrays(K,N_att,omega,links,masks_att_list):
     """
     It computes the probability matrix between nodes in group k and attribute a
     """
-    q_ka2 = np.zeros((K,N_att))
 
-    for link  in range(len(links_array)):
-        i = links_array[link][0]
-        a = links_array[link][1]
-        for k in range(K):
-            #print(i,k,a)
-            q_ka2[k,a] = omega[i,a,k]#/att_elements[a]
-
-    suma = np.sum(q_ka2,axis =1)
-    q_ka2  /=suma[:,np.newaxis]
-    return q_ka2
+    qka2 = np.zeros((K,N_att))
+    unfolded_q = omega[links[:,0],links[:,1],:]
+    for att,mask in enumerate(masks_att_list):
+        qka2[:,att] += unfolded_q[mask,:].sum(axis=0)
+    suma = np.sum(qka2,axis =1)
+    qka2  /=suma[:,np.newaxis]
+    return qka2
 
 def theta_meta(theta,meta):
     for j,veins in enumerate(veins_items_array):
