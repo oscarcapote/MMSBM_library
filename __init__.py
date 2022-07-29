@@ -76,6 +76,9 @@ class metadata_layer:
 
     def __len__(self):
         return self.N_att
+
+    def __str__(self):
+        return self.meta_name
     #
 
 
@@ -514,7 +517,7 @@ class BiNet:
             self.masks_label_list.append(mask)
 
 
-    def init_MAP(self, seed=None):
+    def init_MAP(self,tol=0.0001, seed=None):
         '''
         Initialize the MAP algorithm to get the most plausible memberhip parameters of the MMSBM
 
@@ -526,6 +529,8 @@ class BiNet:
         '''
         # Probability matrices
         # np.random.RandomState(seed)
+
+        self.tol = tol
 
         #BiNet matrices
         self.pkl = init_P_matrix(self.nodes_a.K, self.nodes_b.K, self.N_labels)
@@ -662,9 +667,92 @@ class BiNet:
 
             ##nodes_b inclusive_meta update
             for i, meta in enumerate(nb.meta_inclusives):
-                meta.zeta = theta_comp_array(meta.N_att,meta.Tau,meta.omega,meta.denominbtors,meta.links,meta.masks_att_list)#(meta.N_att,meta.Tau,meta.omega,meta.links,meta.masks_att_list)
+                meta.zeta = theta_comp_array(meta.N_att,meta.Tau,meta.omega,meta.denominators,meta.links,meta.masks_att_list)#(meta.N_att,meta.Tau,meta.omega,meta.links,meta.masks_att_list)
                 meta.q_k_tau = p_kl_comp_arrays(nb.K,meta.Tau,2,meta.links,meta.omega,meta.masks_label_list)
                 meta.omega = omega_comp_arrays(len(self.nodes_b),len(meta),meta.q_k_tau,self.nodes_b.theta,meta.zeta,self.nodes_b.K,meta.Tau,meta.links,meta.labels)
 
             self.pkl = p_kl_comp_arrays(na.K,nb.K,self.N_labels, self.links, self.omega, self.masks_label_list)
             self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links,self.labels_array)
+
+
+    def get_log_likelihoods(self):
+        """
+        It computes the log_likelihoods from every bipartite network of the multipartite network
+        """
+        na = self.nodes_a
+
+        nb = self.nodes_b
+
+        #log-like from the labels network
+        self.log_likelihood = log_like_comp(na.theta,nb.theta,self.pkl,self.links,self.labels_array)
+
+        #log-like from the metadata networks
+        for layer in [na,nb]:
+            #log-like inclusives meta
+            for i, meta in enumerate(layer.meta_inclusives):
+                meta.log_likelihood = log_like_comp(layer.theta,meta.zeta,meta.q_k_tau,meta.links,meta.labels)
+            #log-like exclusives meta
+            for i, meta in enumerate(layer.meta_exclusives):
+                meta.log_likelihood = log_like_comp_exclusive(layer.theta,meta.qka,meta.links)
+
+
+
+    def deep_copying(self):
+        """
+        It makes a deep copy of all the parameters from the MAP algorithm
+
+
+        """
+        na = self.nodes_a
+
+        nb = self.nodes_b
+
+
+        self.pkl_old = self.pkl.copy()
+        self.omega_old = self.omega.copy()
+
+
+        ##Metas copies
+        for layer in [na,nb]:
+            layer.theta_old = layer.theta.copy()
+            ##inclusive_meta copies
+            for i, meta in enumerate(layer.meta_inclusives):
+                meta.zeta_old = meta.zeta.copy()
+                meta.q_k_tau_old = meta.q_k_tau.copy()
+                meta.omega_old = meta.omega.copy()
+
+            ##exclusive_meta copies
+            for i, meta in enumerate(layer.meta_exclusives):
+                meta.qka_old = meta.qka.copy()
+                meta.omega_old = meta.omega.copy()
+
+    def converges(self):
+        """
+        Returns True if the parameters have converged or False if they haven't converged
+        """
+        na = self.nodes_a
+
+        nb = self.nodes_b
+
+        tol = self.tol
+
+
+        ##Metas convergence
+        for layer in [na,nb]:
+            if not finished(layer.theta_old,layer.theta,tol): return False
+            ##inclusive_meta convergence
+            for i, meta in enumerate(layer.meta_inclusives):
+                if not finished(meta.zeta_old,meta.zeta,tol): return False
+                if not finished(meta.q_k_tau_old,meta.q_k_tau,tol): return False
+                if not finished(meta.omega_old,meta.omega,tol): return False
+
+            ##exclusive_meta convergence
+            for i, meta in enumerate(layer.meta_exclusives):
+                if not finished(meta.qka_old,meta.qka,tol): return False
+                if not finished(meta.omega_old,meta.omega,tol): return False
+
+        #links convergence
+        if not finished(self.pkl_old,self.pkl,tol):return False
+        if not finished(self.omega_old,self.omega,tol):return False
+
+        return True
