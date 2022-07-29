@@ -128,6 +128,31 @@ def theta_meta(theta,meta):
     return new_eta
 
 
+def log_like_comp(theta,eta,pkl,links,labels):
+    """
+    Computes the log_likelihood given the membership matrices of two nodes layer (theta and eta), the matrix probabilities (pkl), and the links (links) with the labels (labels)
+    """
+
+    T = theta[links[:,0]][:,:,np.newaxis]
+    E = eta[links[:,1]][:,np.newaxis,:]
+    P = np.moveaxis(pkl[:,:,labels], -1,0)
+
+    return np.log(((T@E)*P).sum(axis=(1,2))).sum()
+
+
+def log_like_comp_exclusive(theta,qka,links):
+    """
+    Computes the log_likelihood of a bipartite network of exclusive metadata.
+    given the membership matrix of a nodes layer (theta), the matrix probabilities (pkl), and the links (links) with the labels (labels)
+    """
+    I = links[:,0]
+    A = links[:,1]
+
+    T = theta[I]#[:,:].T
+    Q = qka[:,A]
+
+    return np.log((T.T*Q).sum(0)).sum()
+
 if not numba_imported:
     def A_lambda(A,lambda_val):
         """
