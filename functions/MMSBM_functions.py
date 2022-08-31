@@ -59,16 +59,16 @@ def theta_comp_arrays_multilayer(BiNet,layer = "a"):
     N_metas = na.N_meta_exclusive
 
     for meta in na.meta_exclusives:
-        new_theta += sum_omega_ax_lambda(meta.omega,1,meta.lambda_meta)
-#         new_theta += meta.omega.sum(axis=1)*meta.lambda_meta
+        new_theta += sum_omega_ax_lambda(meta.omega,1,meta.lambda_val)
+#         new_theta += meta.omega.sum(axis=1)*meta.lambda_val
 
 
     ##Meta inclusive
     N_metas = na.N_meta_inclusive
 
     for meta in na.meta_inclusives:
-        new_theta += sum_omega_13_lambda(meta.omega,meta.lambda_meta)#meta.omega.sum(axis=1).sum(axis=2)*meta.lambda_meta
-        # new_theta += meta.omega.sum(axis=1).sum(axis=2)*meta.lambda_meta
+        new_theta += sum_omega_13_lambda(meta.omega,meta.lambda_val)#meta.omega.sum(axis=1).sum(axis=2)*meta.lambda_val
+        # new_theta += meta.omega.sum(axis=1).sum(axis=2)*meta.lambda_val
 
     ##Denominator
     new_theta /= na.denominators
