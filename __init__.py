@@ -19,9 +19,9 @@ class metadata_layer:
         - exclusive_metadata
         - inclusive_metadata
     """
-    def __init__(self, lambda_meta, meta_name):
+    def __init__(self, lambda_val, meta_name):
         self.meta_name = meta_name
-        self.lambda_meta = lambda_meta
+        self.lambda_val = lambda_val
 
     # @property
     # def N_meta(self):
@@ -84,20 +84,20 @@ class metadata_layer:
 
 class exclusive_metadata(metadata_layer):
 
-    def __init__(self, lambda_meta, meta_name):
+    def __init__(self, lambda_val, meta_name):
         """
         Initialization of the exclusive_metadata class
 
         Parameters
         ----------
-        lambda_meta: float
+        lambda_val: float
             Metadata visibility
         meta_name: str
             Name of the metadata column in the node_layer class
         K: int
             Number of membership groups of this metadata
         """
-        super().__init__(lambda_meta, meta_name)
+        super().__init__(lambda_val, meta_name)
         # self.qka = K
         # print("---",self.qka.shape)
 
@@ -109,28 +109,25 @@ class exclusive_metadata(metadata_layer):
     def qka(self, qka):
         self._qka = qka
 
-    def init_qka(self, K):
-        # print("Hola!!!!", K)
-        if K <= 0: raise ValueError("Value of K must be positive!")
-        self.qka = np.random.rand(K, self.N_att)
+
 
 
 class inclusive_metadata(metadata_layer):
 
-    def __init__(self, lambda_meta, meta_name, Tau):
+    def __init__(self, lambda_val, meta_name, Tau):
         """
         Initialization of the inclusive_metadata class
 
         Parameters
         ----------
-        lambda_meta: float
+        lambda_val: float
             Metadata visibility
         meta_name: str
             Name of the metadata column in the node_layer class
         Tau: int
             Number of membership groups of this metadata
         """
-        super().__init__(lambda_meta, meta_name)
+        super().__init__(lambda_val, meta_name)
         self.Tau = Tau
         # self.zeta = self.zeta(Tau)
 
@@ -157,7 +154,7 @@ class nodes_layer:
     """
     Base class of a layer that contains nodes
 
-    Is initialized using a dataframe and can be modify it  using the df_nodes attribute
+    Is initialized using a dataframe and can be modify it  using the df attribute
 
     The rest of the columns of the dataframe can contain information (metadata) from the nodes.
     This metadata can be added as a metadata_layer object considering the network as multipartite network.
@@ -174,17 +171,21 @@ class nodes_layer:
         self.node_type = nodes_name
 
         if type(nodes_info) == type("d"):
-            self.df_nodes = self.read_file(nodes_info, separator)
+            self.df = self.read_file(nodes_info, separator)
         elif type(nodes_info) == type(pd.DataFrame()):
-            self.df_nodes = nodes_info
+            self.df = nodes_info
 
-        codes = pd.Categorical(self.df_nodes[nodes_name]).codes
-        # self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[nodes_name+"_id"]))
-        # print(self.df_nodes)
-        # self.df_nodes = pd.concat([self.df_nodes, pd.DataFrame({nodes_name + "_id": codes})], axis=1, ignore_index=True)
-        self.df_nodes[nodes_name + "_id"] = codes
-        # print(self.df_nodes)
-        self.nodes_list = self.df_nodes[nodes_name].unique()
+        # codes = pd.Categorical(self.df[nodes_name]).codes
+        # self.codes = codes
+        self.dict_codes = add_codes(self,nodes_name)
+
+
+        # self.df = self.df.join(pd.DataFrame(codes, columns=[nodes_name+"_id"]))
+        # print(self.df)
+        # self.df = pd.concat([self.df, pd.DataFrame({nodes_name + "_id": codes})], axis=1, ignore_index=True)
+        # self.df[nodes_name + "_id"] = codes
+        # print(self.df)
+        self.nodes_list = self.df[nodes_name].unique()
 
 
         self.meta_exclusives = []
@@ -193,9 +194,9 @@ class nodes_layer:
         self.meta_neighbours_inclusives = []  # all neighbours (connected and not) of inclusive metadata
         self.inclusive_linked = []  # metadata inclusive for each node
         self.nodes_observed_inclusive = []
-        self.has_metas = False  #Boolean that tells you if you have metadata initialized with non 0 values of lambda
+        self.has_metas = False  #Boolean that tells you if you have metadata initialized with non 0 values of lambda_val
 
-        self.N_nodes = len(codes)
+        self.N_nodes = len(self.nodes_list)
         self.N_meta_exclusive = 0
         self.N_meta_inclusive = 0
         self.N_meta = 0
@@ -261,7 +262,7 @@ class nodes_layer:
     def __len__(self):
         return self.N_nodes
 
-    def add_exclusive_metadata(self, lambda_meta, meta_name):
+    def add_exclusive_metadata(self, lambda_val, meta_name):
         '''
         Add exclusive_metadata object to node_layer object
 
@@ -270,23 +271,26 @@ class nodes_layer:
         meta_name: str
             Name of the metadata that should be in the node dataframe
 
-        lambda_meta: Float
+        lambda_val: Float
             Value of the metadata visibility
         '''
 
-        df_dropna = self.df_nodes.dropna(subset=[meta_name])
+        df_dropna = self.df.dropna(subset=[meta_name])
         observed = df_dropna[str(self)+"_id"].values
 
-        if lambda_meta>1.e-16:self.has_metas = True
+        if lambda_val>1.e-16:self.has_metas = True
 
         # encode metadata
-        codes = pd.Categorical(self.df_nodes[meta_name]).codes
-        self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[meta_name + "_id"]))
+        # codes = pd.Categorical(self.df[meta_name]).codes
+        # self.df = self.df.join(pd.DataFrame(codes, columns=[meta_name + "_id"]))
+
 
         # create metadata object
-        em = exclusive_metadata(lambda_meta, meta_name)
-        em.links = self.df_nodes[[self.node_type + "_id", meta_name + "_id"]].values
-        em.N_att = len(set(codes))
+        em = exclusive_metadata(lambda_val, meta_name)
+        em.dict_codes = add_codes(self,meta_name)
+
+        em.links = self.df[[self.node_type + "_id", meta_name + "_id"]].values
+        em.N_att = len(em.dict_codes)
         # em.qka = em.init_qka(self.K)
 
         #list of arrays of ints where the array number att has all the index positions of links that connects the attribute att
@@ -304,11 +308,11 @@ class nodes_layer:
         meta_neighbours = np.ones(self.N_nodes, dtype=np.int32)
 
         for n in range(self.N_nodes):
-            meta_neighbours[n] = self.df_nodes[self.df_nodes[self.node_type + "_id" ]== n][meta_name + "_id"]#.values
+            meta_neighbours[n] = self.df[self.df[self.node_type + "_id" ]== n][meta_name + "_id"]#.values
 
         self.meta_neighbours_exclusives.append(meta_neighbours)
 
-    def add_inclusive_metadata(self, lambda_meta, meta_name, Tau, separator="|"):
+    def add_inclusive_metadata(self, lambda_val, meta_name, Tau, separator="|"):
         '''
         Add inclusive_metadata object to node_layer object
 
@@ -317,7 +321,7 @@ class nodes_layer:
         meta_name: str
             Name of the metadata that should be in the node dataframe
 
-        lambda_meta: float
+        lambda_val: float
             Value of the metadata visibility
 
         Tau: Int
@@ -329,18 +333,18 @@ class nodes_layer:
         '''
 
         # create metadata object
-        im = inclusive_metadata(lambda_meta, meta_name, Tau)
-        # im.q_k_tau(self.K, Tau, 2)lambda_meta, meta_name, Tau
+        im = inclusive_metadata(lambda_val, meta_name, Tau)
+        # im.q_k_tau(self.K, Tau, 2)lambda_val, meta_name, Tau
 
         # links and neighbours
-        df_dropna = self.df_nodes.dropna(subset=[meta_name])
-        meta_list = self.df_nodes[meta_name].values
+        df_dropna = self.df.dropna(subset=[meta_name])
+        meta_list = self.df[meta_name].values
 
         observed = df_dropna[self.node_type].values  # Nodes with known metadata
         observed_id = df_dropna[self.node_type + "_id"].values  # Nodes with known metadata
 
 
-        if lambda_meta>1.e-16:self.has_metas = True
+        if lambda_val>1.e-16:self.has_metas = True
         # encode metadata
         meta_neighbours = []#[[int(j) for j in i.split(separator)] for i in df_dropna[meta_name].values]#meta connected with 1
 
@@ -359,7 +363,7 @@ class nodes_layer:
 
         decodes = {codes[i]:i for i in codes}
 
-        im.codes = codes
+        im.dict_codes = codes
         im.decodes = decodes
         im.N_att = len(set(codes))
 
@@ -397,8 +401,8 @@ class nodes_layer:
             mask = np.argwhere(im.labels==r)[:,0]
             im.masks_label_list.append(mask)
 
-        # codes = pd.Categorical(self.df_nodes[meta_name]).codes
-        # self.df_nodes = self.df_nodes.join(pd.DataFrame(codes, columns=[meta_name+"_id"]))
+        # codes = pd.Categorical(self.df[meta_name]).codes
+        # self.df = self.df.join(pd.DataFrame(codes, columns=[meta_name+"_id"]))
         # self.inclusive_linked.append([[int(j) for j in i.split(separator)] for i in df_dropna [meta_name+"_id"].values])
 
         self.nodes_observed_inclusive.append(observed)
@@ -456,9 +460,9 @@ class BiNet:
             Separator of the links DataFrame. Default is \t
         """
         if type(links) == type(pd.DataFrame()):
-            self.links_df = links
+            self.df = links
         elif isinstance(links, str):
-            self.links_df = pd.read_csv(links, sep=separator, engine='python')
+            self.df = pd.read_csv(links, sep=separator, engine='python')
 
 
         # creating first layer class
@@ -469,7 +473,7 @@ class BiNet:
         elif isinstance(nodes_a, str):
             self.nodes_a = nodes_layer(Ka, nodes_a_name, nodes_a)
         elif  nodes_a == None:
-            self.nodes_a = nodes_layer.create_simple_layer(Ka, self.links_df[nodes_a_name], nodes_a_name)
+            self.nodes_a = nodes_layer.create_simple_layer(Ka, self.df[nodes_a_name], nodes_a_name)
 
         # creating second layer class
         if isinstance(nodes_b, nodes_layer):
@@ -479,23 +483,24 @@ class BiNet:
         elif isinstance(nodes_b, str):
             self.nodes_b = nodes_layer(Kb, nodes_b_name, nodes_b)
         elif nodes_b == None:
-            self.nodes_b = nodes_layer.create_simple_layer(Kb, self.links_df[nodes_b_name], nodes_b_name)
+            self.nodes_b = nodes_layer.create_simple_layer(Kb, self.df[nodes_b_name], nodes_b_name)
 
 
         ## Coding labels
-        codes = pd.Categorical(self.links_df[links_label]).codes
-        self.links_df = self.links_df.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
-        self.labels_array = self.links_df[links_label + "_id"].values
+        self.dict_codes = add_codes(self,links_label)
+        # codes = pd.Categorical(self.df[links_label]).codes
+        # self.df = self.df.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
+        self.labels_array = self.df[links_label + "_id"].values
 
 
 
 
         #Links
-        self.links_df = self.links_df.join(self.nodes_a.df_nodes[[nodes_a_name,nodes_a_name + "_id"]].set_index(nodes_a_name),on=nodes_a_name)
-        self.links_df = self.links_df.join(self.nodes_b.df_nodes[[nodes_b_name,nodes_b_name + "_id"]].set_index(nodes_b_name),on=nodes_b_name)
+        self.df = self.df.join(self.nodes_a.df[[nodes_a_name,nodes_a_name + "_id"]].set_index(nodes_a_name),on=nodes_a_name)
+        self.df = self.df.join(self.nodes_b.df[[nodes_b_name,nodes_b_name + "_id"]].set_index(nodes_b_name),on=nodes_b_name)
 
-        self.links_df = self.links_df.drop_duplicates()
-        self.links = self.links_df[[nodes_a_name + "_id", nodes_b_name + "_id"]].values
+        self.df = self.df.drop_duplicates()
+        self.links = self.df[[nodes_a_name + "_id", nodes_b_name + "_id"]].values
 
 
         #observed nodes in each layer
@@ -583,22 +588,22 @@ class BiNet:
         self.neighbours_nodes_a = [] #list of list of neighbours
         for node in range(len(self.nodes_a)):
             #neighbours in BiNet
-            self.neighbours_nodes_a.append(self.links_df[self.links_df[str(self.nodes_a)+"_id"] == node][str(self.nodes_b)+"_id"].values)
+            self.neighbours_nodes_a.append(self.df[self.df[str(self.nodes_a)+"_id"] == node][str(self.nodes_b)+"_id"].values)
             self.nodes_a.denominators[node] += len(self.neighbours_nodes_a[-1])
 
         #neighbours in meta exclusives
         for i, meta in enumerate(self.nodes_a.meta_exclusives):
             for node in meta.links[:,0]:
-                self.nodes_a.denominators[node] += meta.lambda_meta
+                self.nodes_a.denominators[node] += meta.lambda_val
 
         #neighbours in meta inclusives
         for node in range(len(self.nodes_a)):
             for i, meta in enumerate(self.nodes_a.meta_inclusives):
-                self.nodes_a.denominators[node] += meta.lambda_meta*len(meta.links[meta.links[:,0]==node,:])
+                self.nodes_a.denominators[node] += meta.lambda_val*len(meta.links[meta.links[:,0]==node,:])
 
 
             #for i, meta in enumerate(self.nodes_a.meta_exclusives):
-                #self.node_a.denominators[node] += meta.lambda_metas*
+                #self.node_a.denominators[node] += meta.lambda_vals*
 
         self.nodes_a.denominators = self.nodes_a.denominators[:,np.newaxis]
 
@@ -608,18 +613,18 @@ class BiNet:
         self.neighbours_nodes_b = [] #list of list of neighbours
         for node in range(len(self.nodes_b)):
             #neighbours in BiNet
-            self.neighbours_nodes_b.append(self.links_df[self.links_df[str(self.nodes_b)+"_id"] == node][str(self.nodes_a)+"_id"].values)
+            self.neighbours_nodes_b.append(self.df[self.df[str(self.nodes_b)+"_id"] == node][str(self.nodes_a)+"_id"].values)
             self.nodes_b.denominators[node] += len(self.neighbours_nodes_b[-1])
 
         #neighbours in meta exclusives
         for i, meta in enumerate(self.nodes_b.meta_exclusives):
             for node in meta.links[:,0]:
-                self.nodes_b.denominators[node] += meta.lambda_meta
+                self.nodes_b.denominators[node] += meta.lambda_val
 
         #neighbours in meta inclusives
         for node in range(len(self.nodes_b)):
             for i, meta in enumerate(self.nodes_b.meta_inclusives):
-                self.nodes_b.denominators[node] += meta.lambda_meta*len(meta.links[meta.links[:,0]==node,:])
+                self.nodes_b.denominators[node] += meta.lambda_val*len(meta.links[meta.links[:,0]==node,:])
 
             #neighbours in meta inclusives
 
