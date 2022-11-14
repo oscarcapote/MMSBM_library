@@ -166,7 +166,7 @@ class nodes_layer:
     """
 
 
-    def __init__(self, K, nodes_name, nodes_info, *, separator="\t", **kwargs):
+    def __init__(self, K, nodes_name, nodes_info, *, separator="\t", dict_codes = None, **kwargs):
         self.K = K
         self.node_type = nodes_name
 
@@ -178,6 +178,13 @@ class nodes_layer:
         # codes = pd.Categorical(self.df[nodes_name]).codes
         # self.codes = codes
         self.dict_codes = add_codes(self,nodes_name)
+
+        if dict_codes != None:
+            replacer = {}
+            for att in dict_codes:
+                replacer[self.dict_codes[att]]= dict_codes[att]
+            self.dict_codes = dict_codes
+            self.df.replace({nodes_name+"_id":replacer})
 
 
         # self.df = self.df.join(pd.DataFrame(codes, columns=[nodes_name+"_id"]))
@@ -262,7 +269,7 @@ class nodes_layer:
     def __len__(self):
         return self.N_nodes
 
-    def add_exclusive_metadata(self, lambda_val, meta_name):
+    def add_exclusive_metadata(self, lambda_val, meta_name,*,dict_codes=None):
         '''
         Add exclusive_metadata object to node_layer object
 
@@ -273,6 +280,9 @@ class nodes_layer:
 
         lambda_val: Float
             Value of the metadata visibility
+
+        dict_codes: dict, None, default: None
+            Dictionary where the keys are the names of metadata's type, and the values are the ids. If None, the program will generate the ids.
         '''
 
         df_dropna = self.df.dropna(subset=[meta_name])
@@ -288,6 +298,15 @@ class nodes_layer:
         # create metadata object
         em = exclusive_metadata(lambda_val, meta_name)
         em.dict_codes = add_codes(self,meta_name)
+        em._meta_code = self.N_meta_exclusive
+
+        if dict_codes != None:
+            replacer = {}
+            for att in dict_codes:
+                replacer[em.dict_codes[att]]= dict_codes[att]
+
+            em.dict_codes = dict_codes
+            self.df.replace({meta_name +"_id":replacer})
 
         em.links = self.df[[self.node_type + "_id", meta_name + "_id"]].values
         em.N_att = len(em.dict_codes)
@@ -312,7 +331,7 @@ class nodes_layer:
 
         self.meta_neighbours_exclusives.append(meta_neighbours)
 
-    def add_inclusive_metadata(self, lambda_val, meta_name, Tau, separator="|"):
+    def add_inclusive_metadata(self, lambda_val, meta_name, Tau,*,dict_codes=None, separator="|"):
         '''
         Add inclusive_metadata object to node_layer object
 
@@ -328,12 +347,17 @@ class nodes_layer:
             Number of membership groups of metadata
 
 
-        Separator: str
+        separator: str, default: "\t"
             Separator that is used to differenciate the differents metadata assigned for each node
+
+        dict_codes: dict, None, default: None
+            Dictionary where the keys are the names of metadata's type, and the values are the ids. If None, the program will generate the ids.
         '''
 
         # create metadata object
         im = inclusive_metadata(lambda_val, meta_name, Tau)
+        im._separator = separator
+        im._meta_code = self.N_meta_inclusive
         # im.q_k_tau(self.K, Tau, 2)lambda_val, meta_name, Tau
 
         # links and neighbours
@@ -345,25 +369,35 @@ class nodes_layer:
 
 
         if lambda_val>1.e-16:self.has_metas = True
+
+
         # encode metadata
         meta_neighbours = []#[[int(j) for j in i.split(separator)] for i in df_dropna[meta_name].values]#meta connected with 1
 
-        for i in meta_list:
+        for arg in np.argsort(observed_id):
+            i = meta_list[arg]
             if i == None or i == np.NaN or i == pd.NaT:
                 meta_neighbours.append(None)
             else:
                 meta_neighbours.append([j for j in i.split(separator)])
 
-        codes = {}
 
-        for l in meta_neighbours:
-            if l == None: continue
-            for m in l:
-                codes[m] = codes.get(m, len(codes))
+        if dict_codes != None:
+            codes = dict_codes
+            im.dict_codes = dict_codes
+        else:
+            codes = {}
 
-        decodes = {codes[i]:i for i in codes}
+            for l in meta_neighbours:
+                if l == None: continue
+                for m in l:
+                    codes[m] = codes.get(m, len(codes))
+
 
         im.dict_codes = codes
+
+
+        decodes = {codes[i]:i for i in codes}
         im.decodes = decodes
         im.N_att = len(set(codes))
 
@@ -373,7 +407,7 @@ class nodes_layer:
         labels = np.zeros(len(observed) * im.N_att,dtype=np.int64)
 
         index = 0
-        for i, o in enumerate(observed):
+        for i, o in enumerate(observed_id):
             for a in range(im.N_att):
                 links[index, 0] = o
                 links[index, 1] = a
@@ -405,7 +439,7 @@ class nodes_layer:
         # self.df = self.df.join(pd.DataFrame(codes, columns=[meta_name+"_id"]))
         # self.inclusive_linked.append([[int(j) for j in i.split(separator)] for i in df_dropna [meta_name+"_id"].values])
 
-        self.nodes_observed_inclusive.append(observed)
+        self.nodes_observed_inclusive.append(observed_id)
 
         # update meta related nodes attributes
         self.meta_inclusives.append(im)
@@ -415,6 +449,119 @@ class nodes_layer:
         self.meta_neighbours_inclusives.append([[codes[m] for m in L] for L in meta_neighbours])
 
 
+        def update_exclusives_id(self, em, dict_codes):
+            '''
+                Changes the ids (the integer assigned to each metadata attribute) given the dict_codes.
+
+                Parameters
+                -----------
+
+                dict_codes: dict
+                    Dictionary where the keys are the names of metadata's type, and the values are the ids.
+            '''
+            replacer = {}
+            for att in dict_codes:
+                replacer[em.dict_codes[att]]= dict_codes[att]
+
+            em.dict_codes = dict_codes
+            self.df = self.df.replace({em.meta_name +"_id":replacer})
+
+            em.links = self.df[[self.node_type + "_id", em.meta_name + "_id"]].values
+
+            #list of arrays of ints where the array number att has all the index positions of links that connects the attribute att
+            em.masks_att_list = []
+            for r in range(em.N_att):
+                mask = np.argwhere(em.links[:,1]==r)[:,0]
+                em.masks_att_list.append(mask)
+
+
+
+            meta_neighbours = np.ones(self.N_nodes, dtype=np.int32)
+
+            for n in range(self.N_nodes):
+                meta_neighbours[n] = self.df[self.df[self.node_type + "_id" ]== n][em.meta_name + "_id"]#.values
+
+            for i,meta in enumerate(self.meta_exclusives):
+                if meta==em:
+                    self.meta_neighbours_exclusives[i] = meta_neighbours
+
+        def update_inclusives_id(self, im, dict_codes):
+            '''
+                Changes the ids (the integer assigned to each metadata attribute) given the dict_codes.
+
+                Parameters
+                -----------
+
+                dict_codes: dict
+                    Dictionary where the keys are the names of metadata's type, and the values are the ids. If None, the program will generate the ids.
+            '''
+            observed = self.nodes_observed_inclusive[im._meta_code]
+            meta_neighbours = []
+
+
+            #Replacer to change the ids
+            replacer = {}
+            for att in dict_codes:
+                replacer[im.dict_codes[att]]= dict_codes[att]
+
+
+            #New ids into the neigbours list
+            for neig in self.meta_neighbours_inclusives[im._meta_code]:
+                N = []
+                for ids in neig:
+                    N.append(replacer[ids])
+                meta_neighbours.append(N)
+
+
+
+            #changing codes dicts
+            codes = dict_codes
+            im.dict_codes = dict_codes
+
+
+            decodes = {codes[i]:i for i in codes}
+            im.decodes = decodes
+            im.N_att = len(set(codes))
+
+            # Links between node and metadata type
+            links = np.ones((len(observed) * im.N_att, 2),dtype=np.int64)
+            # Label of the link: 0 if not connected 1 if connected
+            labels = np.zeros(len(observed) * im.N_att,dtype=np.int64)
+
+            index = 0
+            for i, o in enumerate(observed_id):
+                for a in range(im.N_att):
+                    links[index, 0] = o
+                    links[index, 1] = a
+                    if a in meta_neighbours[i]:
+                        labels[index] = 1
+
+                    index += 1
+
+            #list where the index is the attribute and the element is an array of the nodes that are connected to the same attribute
+            im.neighbours_meta = []
+            for att in range(im.N_att):
+                im.neighbours_meta.append(links[links[:,1]==att][:,0])
+
+            im.masks_att_list = [np.argwhere(links[:,1]==att)[:,0] for att in range(len(im))]
+
+            im.links = links
+            im.labels = labels
+            im.N_labels = 2#connected or disconnected
+            #nodes neigbours
+
+
+            #masks list to know wich links have label r (that is the index of the list)
+            im.masks_label_list = []
+            for r in range(2):
+                mask = np.argwhere(im.labels==r)[:,0]
+                im.masks_label_list.append(mask)
+
+
+
+            # update meta related nodes attributes
+            self.meta_neighbours_inclusives[im._meta_code] = [[m for m in L] for L in meta_neighbours]
+
 class BiNet:
     """
     Class of a Bipartite Network, where two layers of different types of nodes are connected (users->items, politicians->bills, patient->microbiome...) and these links can be labeled with informations of the interaction (ratings, votes...)
@@ -422,7 +569,7 @@ class BiNet:
 
     """
     def __init__(self, links, links_label,*, nodes_a = None, nodes_b = None, Ka=1, nodes_a_name="nodes_a", Kb=1,
-                 nodes_b_name="nodes_b", separator="\t"):
+                 nodes_b_name="nodes_b", separator="\t", dict_codes = None):
         """
          Initialization of a BiNet class
 
@@ -434,29 +581,32 @@ class BiNet:
          links_label: str
             Name of the links column where the labels are
 
-         nodes_a: nodes_layer, str, None
+         nodes_a: nodes_layer, str, None, default: None
              One of the nodes layer that forms the bipartite network
              If it is a string, it should contain the directory where the information of the nodes of type a are.
              If None, it a simple nodes_layer will be created from the information from links.
 
-         nodes_b: nodes_layer, str, None
+         nodes_b: nodes_layer, str, None, default: None
              One of the nodes layer that forms the bipartite network
              If it is a string, it should contain the directory where the information of the nodes of type b are.
              If None, it a simple nodes_layer will be created from the information from links.
 
-         Ka: int
+         Ka: int, default: 1
             Number of membership groups from nodes_a layer
 
-         Kb: int
+         Kb: int, default: 1
             Number of membership groups from nodes_b layer
 
-         nodes_a_name: str
+         nodes_a_name: str, default: nodes_a
             Name of the column where the names of nodes_a are in the links DataFrame and nodes_a DataFrame
 
-         nodes_b_name: str
+         nodes_b_name: str, default: nodes_b
             Name of the column where the names of nodes_b are in the links DataFrame and nodes_b DataFrame
 
-         separator: str
+         dict_codes: dict, None, default: None
+            Dictionary where the keys are the names of the labels, and the values are the ids. If None, the program will generate the ids.
+
+         separator: str, default: \t
             Separator of the links DataFrame. Default is \t
         """
         if type(links) == type(pd.DataFrame()):
@@ -488,6 +638,10 @@ class BiNet:
 
         ## Coding labels
         self.dict_codes = add_codes(self,links_label)
+        if dict_codes != None:
+            self.dict_codes = dict_codes
+            self.df.replace({links_label+"_id":dict_codes})
+
         # codes = pd.Categorical(self.df[links_label]).codes
         # self.df = self.df.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
         self.labels_array = self.df[links_label + "_id"].values
@@ -522,13 +676,16 @@ class BiNet:
             self.masks_label_list.append(mask)
 
 
-    def init_MAP(self,tol=0.0001, seed=None):
+    def init_MAP(self,tol=0.001, seed=None):
         '''
         Initialize the MAP algorithm to get the most plausible memberhip parameters of the MMSBM
 
         Parameters
         -----------
-        seed: int
+        tol: float, default: 0.001
+            Tolerance of the algorithm when finding the parameters.
+
+        seed: int, None, default: None
             Seed to generate the matrices. Is initialized using the np.random.RandomState(seed) method.
 
         '''
@@ -637,8 +794,8 @@ class BiNet:
 
         Parameters
         ----------
-        N_steps: int
-            Number of MAP steps that will be performed
+        N_steps: int, default: 1
+            Number of MAP steps that will be performed. N_steps = 1 as default.
         """
         na = self.nodes_a
 
