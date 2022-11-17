@@ -152,17 +152,17 @@ class inclusive_metadata(metadata_layer):
 
 class nodes_layer:
     """
-    Base class of a layer that contains nodes
+        Base class of a layer that contains nodes
 
-    Is initialized using a dataframe and can be modify it  using the df attribute
+        Is initialized using a dataframe and can be modify it  using the df attribute
 
-    The rest of the columns of the dataframe can contain information (metadata) from the nodes.
-    This metadata can be added as a metadata_layer object considering the network as multipartite network.
-    This metadata can be classify it as exclusive_metadata (if a node only accepts one attribute) and inclusive_metadata (if the node accepts more than one attribute)
+        The rest of the columns of the dataframe can contain information (metadata) from the nodes.
+        This metadata can be added as a metadata_layer object considering the network as multipartite network.
+        This metadata can be classify it as exclusive_metadata (if a node only accepts one attribute) and inclusive_metadata (if the node accepts more than one attribute)
 
-    See for more information of metadata: metadata_layer, exclusive_metadata and inclusive_metadata.
+        See for more information of metadata: metadata_layer, exclusive_metadata and inclusive_metadata.
 
-    These objects can be added into a BiNet (bipartite network) where connection between nodes_layer are considered to infer links and their labels  (see BiNet)
+        These objects can be added into a BiNet (bipartite network) where connection between nodes_layer are considered to infer links and their labels  (see BiNet)
     """
 
 
@@ -180,11 +180,20 @@ class nodes_layer:
         self.dict_codes = add_codes(self,nodes_name)
 
         if dict_codes != None:
+            if self.df.dtypes[self.node_type] == np.dtype("int64") or self.df.dtypes[self.node_type] == np.dtype("int32") or self.df.dtypes[self.node_type] == np.dtype("int16"):
+                new_dict = {}
+                for k in dict_codes:
+                    new_dict[int(k)] = int(dict_codes[k])
+                dict_codes = new_dict
+            else:
+                for k in new_dict:
+                    dict_codes[k] = int(dict_codes[k])
+
             replacer = {}
             for att in dict_codes:
                 replacer[self.dict_codes[att]]= dict_codes[att]
             self.dict_codes = dict_codes
-            self.df.replace({nodes_name+"_id":replacer})
+            self.df = self.df.replace({nodes_name+"_id":replacer})
 
 
         # self.df = self.df.join(pd.DataFrame(codes, columns=[nodes_name+"_id"]))
@@ -208,13 +217,13 @@ class nodes_layer:
         self.N_meta_inclusive = 0
         self.N_meta = 0
 
-        self.theta = init_P_matrix(self.N_nodes,self.K)
+
 
     def read_file(self, filename, separator="\t"):
         return pd.read_csv(filename, sep=separator, engine='python')
 
     @classmethod
-    def create_simple_layer(cls, K, nodes_list, nodes_name):
+    def create_simple_layer(cls, K, nodes_list, nodes_name, dict_codes=None):
         '''
         Create a nodes_layer object from a list or DataSeries without only with the known nodes
 
@@ -223,11 +232,14 @@ class nodes_layer:
         K: Int
             Number of membership groups of nodes_layer
 
-        nodes_list: list or DataSeries
-            List or DataSeries with all the nodes
+        nodes_list: list, DataFrame or DataSeries
+            List, DataFrame or DataSeries with all the nodes
 
         nodes_name: str
             Name of the nodes type (users, movies, metobolites...) that are or will be in DataFrame
+
+        dict_codes: dict, None, default: None
+            Dictionary where the keys are the names of nodes, and the values are their ids. If None, the program will generate the ids.
 
         '''
         if isinstance(nodes_list, list):
@@ -237,7 +249,7 @@ class nodes_layer:
         elif isinstance(nodes_list, pd.DataFrame):
             new_df = nodes_list
 
-        return cls(K, nodes_name, new_df)
+        return cls(K, nodes_name, new_df, dict_codes=dict_codes)
 
     def __str__(self):
         return self.node_type
@@ -301,12 +313,17 @@ class nodes_layer:
         em._meta_code = self.N_meta_exclusive
 
         if dict_codes != None:
+            if self.df.dtypes[meta_name] == np.dtype("int64") or self.df.dtypes[meta_name] == np.dtype("int32") or self.df.dtypes[meta_name] == np.dtype("int16"):
+                new_dict = {}
+                for k in dict_codes:
+                    new_dict[int(k)] = int(dict_codes[k])
+                dict_codes = new_dict
             replacer = {}
             for att in dict_codes:
                 replacer[em.dict_codes[att]]= dict_codes[att]
 
             em.dict_codes = dict_codes
-            self.df.replace({meta_name +"_id":replacer})
+            self.df = self.df.replace({meta_name +"_id":replacer})
 
         em.links = self.df[[self.node_type + "_id", meta_name + "_id"]].values
         em.N_att = len(em.dict_codes)
@@ -347,7 +364,7 @@ class nodes_layer:
             Number of membership groups of metadata
 
 
-        separator: str, default: "\t"
+        separator: str, default: "|"
             Separator that is used to differenciate the differents metadata assigned for each node
 
         dict_codes: dict, None, default: None
@@ -383,6 +400,14 @@ class nodes_layer:
 
 
         if dict_codes != None:
+            if self.df.dtypes[meta_name] == np.dtype("int64") or self.df.dtypes[meta_name] == np.dtype("int32") or self.df.dtypes[meta_name] == np.dtype("int16"):
+                new_dict = {}
+                for k in dict_codes:
+                    new_dict[int(k)] = int(dict_codes[k])
+                dict_codes = new_dict
+            else:
+                for k in dict_codes:
+                    dict_codes[k] = int(dict_codes[k])
             codes = dict_codes
             im.dict_codes = dict_codes
         else:
@@ -401,6 +426,8 @@ class nodes_layer:
         im.decodes = decodes
         im.N_att = len(set(codes))
 
+        meta_neighbours = [[im.dict_codes[i] for i in L] for L in meta_neighbours]
+
         # Links between node and metadata type
         links = np.ones((len(observed) * im.N_att, 2),dtype=np.int64)
         # Label of the link: 0 if not connected 1 if connected
@@ -411,7 +438,7 @@ class nodes_layer:
             for a in range(im.N_att):
                 links[index, 0] = o
                 links[index, 1] = a
-                if decodes[a] in meta_neighbours[i]:
+                if a in meta_neighbours[i]:
                     labels[index] = 1
 
                 index += 1
@@ -446,7 +473,7 @@ class nodes_layer:
         self.N_meta_inclusive += 1
         self.N_meta += 1
 
-        self.meta_neighbours_inclusives.append([[codes[m] for m in L] for L in meta_neighbours])
+        self.meta_neighbours_inclusives.append(meta_neighbours)
 
 
         def update_exclusives_id(self, em, dict_codes):
@@ -637,10 +664,24 @@ class BiNet:
 
 
         ## Coding labels
+        self.labels_name = links_label
         self.dict_codes = add_codes(self,links_label)
         if dict_codes != None:
+            if self.df.dtypes[self.labels_name] == np.dtype("int64") or self.df.dtypes[self.labels_name] == np.dtype("int32") or self.df.dtypes[self.labels_name] == np.dtype("int16"):
+                new_dict = {}
+                for k in dict_codes:
+                    new_dict[int(k)] = int(dict_codes[k])
+                dict_codes = new_dict
+            else:
+                for k in new_dict:
+                    dict_codes[k] = int(dict_codes[k])
+
+            replacer = {}
+            for att in dict_codes:
+                replacer[self.dict_codes[att]]= dict_codes[att]
+
             self.dict_codes = dict_codes
-            self.df.replace({links_label+"_id":dict_codes})
+            self.df = self.df.replace({self.labels_name+"_id":replacer})
 
         # codes = pd.Categorical(self.df[links_label]).codes
         # self.df = self.df.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
@@ -696,8 +737,15 @@ class BiNet:
 
         #BiNet matrices
         self.pkl = init_P_matrix(self.nodes_a.K, self.nodes_b.K, self.N_labels)
+
+        #memberships (thetas)
+        self.nodes_a.theta = init_P_matrix(len(self.nodes_a),self.nodes_a.K)
+        self.nodes_b.theta = init_P_matrix(len(self.nodes_b),self.nodes_b.K)
+
+
         # print("aqui1",self.pkl.shape)
         self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links,self.labels_array)
+
 
 
         #Metadata
