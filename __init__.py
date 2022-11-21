@@ -186,14 +186,14 @@ class nodes_layer:
                     new_dict[int(k)] = int(dict_codes[k])
                 dict_codes = new_dict
             else:
-                for k in new_dict:
+                for k in dict_codes:
                     dict_codes[k] = int(dict_codes[k])
 
             replacer = {}
             for att in dict_codes:
                 replacer[self.dict_codes[att]]= dict_codes[att]
             self.dict_codes = dict_codes
-            self.df = self.df.replace({nodes_name+"_id":replacer})
+            self.df.replace({nodes_name+"_id":replacer}, inplace=True)
 
 
         # self.df = self.df.join(pd.DataFrame(codes, columns=[nodes_name+"_id"]))
@@ -323,7 +323,7 @@ class nodes_layer:
                 replacer[em.dict_codes[att]]= dict_codes[att]
 
             em.dict_codes = dict_codes
-            self.df = self.df.replace({meta_name +"_id":replacer})
+            self.df.replace({meta_name +"_id":replacer}, inplace=True)
 
         em.links = self.df[[self.node_type + "_id", meta_name + "_id"]].values
         em.N_att = len(em.dict_codes)
@@ -491,7 +491,7 @@ class nodes_layer:
                 replacer[em.dict_codes[att]]= dict_codes[att]
 
             em.dict_codes = dict_codes
-            self.df = self.df.replace({em.meta_name +"_id":replacer})
+            self.df.replace({em.meta_name +"_id":replacer}, inplace=True)
 
             em.links = self.df[[self.node_type + "_id", em.meta_name + "_id"]].values
 
@@ -596,26 +596,28 @@ class BiNet:
 
     """
     def __init__(self, links, links_label,*, nodes_a = None, nodes_b = None, Ka=1, nodes_a_name="nodes_a", Kb=1,
-                 nodes_b_name="nodes_b", separator="\t", dict_codes = None):
+                 nodes_b_name="nodes_b", separator="\t", dict_codes = None, dict_codes_a = None, dict_codes_b = None):
         """
          Initialization of a BiNet class
 
          Parameters
          -----------
          links: str, DataFrame
-            DataFrame or directory where the dataframe is. It should contains the links list between nodes_a and nodes_b and their labels.
+            DataFrame or directory where the DataFrame is. It should contains the links list between nodes_a and nodes_b and their labels.
 
          links_label: str
-            Name of the links column where the labels are
+             Name of the links column where the labels are
 
-         nodes_a: nodes_layer, str, None, default: None
+         nodes_a: nodes_layer, str, DataFrame, None, default: None
              One of the nodes layer that forms the bipartite network
              If it is a string, it should contain the directory where the information of the nodes of type a are.
+             If it is a pandas DatFrame, it has to contain the information of the nodes of type a.
              If None, it a simple nodes_layer will be created from the information from links.
 
-         nodes_b: nodes_layer, str, None, default: None
+         nodes_b: nodes_layer, str, DataFrame, None, default: None
              One of the nodes layer that forms the bipartite network
              If it is a string, it should contain the directory where the information of the nodes of type b are.
+             If it is a pandas DatFrame, it has to contain the information of the nodes of type b.
              If None, it a simple nodes_layer will be created from the information from links.
 
          Ka: int, default: 1
@@ -633,6 +635,12 @@ class BiNet:
          dict_codes: dict, None, default: None
             Dictionary where the keys are the names of the labels, and the values are the ids. If None, the program will generate the ids.
 
+         dict_codes_a: dict, None, default: None
+            Dictionary where the keys are the names of the nodes from nodes_a and the values are the ids. If None, the program will generate the ids.
+
+         dict_codes_b: dict, None, default: None
+            Dictionary where the keys are the names of the nodes from nodes_b and the values are the ids. If None, the program will generate the ids.
+
          separator: str, default: \t
             Separator of the links DataFrame. Default is \t
         """
@@ -648,9 +656,11 @@ class BiNet:
             nodes_a_name = str(self.nodes_a)
             Ka = nodes_a.K
         elif isinstance(nodes_a, str):
-            self.nodes_a = nodes_layer(Ka, nodes_a_name, nodes_a)
+            self.nodes_a = nodes_layer(Ka, nodes_a_name, nodes_a, dict_codes = dict_codes_a)
+        elif isinstance(nodes_a, pd.DataFrame):
+            self.nodes_a = nodes_layer(Ka, nodes_a_name, nodes_a, dict_codes = dict_codes_a)
         elif  nodes_a == None:
-            self.nodes_a = nodes_layer.create_simple_layer(Ka, self.df[nodes_a_name], nodes_a_name)
+            self.nodes_a = nodes_layer.create_simple_layer(Ka, self.df[nodes_a_name], nodes_a_name, dict_codes = dict_codes_a)
 
         # creating second layer class
         if isinstance(nodes_b, nodes_layer):
@@ -658,9 +668,11 @@ class BiNet:
             nodes_b_name = str(self.nodes_b)
             Kb = nodes_b.K
         elif isinstance(nodes_b, str):
-            self.nodes_b = nodes_layer(Kb, nodes_b_name, nodes_b)
+            self.nodes_b = nodes_layer(Kb, nodes_b_name, nodes_b, dict_codes = dict_codes_b)
+        elif isinstance(nodes_b, pd.DataFrame):
+            self.nodes_b = nodes_layer(Kb, nodes_b_name, nodes_b, dict_codes = dict_codes_b)
         elif nodes_b == None:
-            self.nodes_b = nodes_layer.create_simple_layer(Kb, self.df[nodes_b_name], nodes_b_name)
+            self.nodes_b = nodes_layer.create_simple_layer(Kb, self.df[nodes_b_name], nodes_b_name, dict_codes = dict_codes_b)
 
 
         ## Coding labels
@@ -681,7 +693,7 @@ class BiNet:
                 replacer[self.dict_codes[att]]= dict_codes[att]
 
             self.dict_codes = dict_codes
-            self.df = self.df.replace({self.labels_name+"_id":replacer})
+            self.df.replace({self.labels_name+"_id":replacer}, inplace=True)
 
         # codes = pd.Categorical(self.df[links_label]).codes
         # self.df = self.df.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
@@ -717,6 +729,105 @@ class BiNet:
             self.masks_label_list.append(mask)
 
 
+    @classmethod
+    def load_BiNet_from_json(cls, json_file, links, links_label,*, nodes_a = None, nodes_b = None, separator="\t"):
+
+        #open json
+        with open(json_file, 'r') as f:
+            data = json.load(f)
+
+
+        #construct both nodes layers objects with metadata initialized
+        # creating first layer class
+        if isinstance(nodes_a, nodes_layer):
+            na = nodes_a
+            nodes_a_name = str(na)
+            Ka = nodes_a.K
+        elif isinstance(nodes_a, str) or isinstance(nodes_a, pd.DataFrame):
+            na = nodes_layer(data["layer a"]["K"],data["layer a"]["name"],nodes_a,dict_codes=data["layer a"]["dict_codes"])
+        elif  nodes_a == None:
+            #later it will be created
+            na = None
+
+        # creating second layer class
+        if isinstance(nodes_b, nodes_layer):
+            nb = nodes_b
+            nodes_b_name = str(nb)
+            Kb = nodes_b.K
+        elif isinstance(nodes_b, str) or isinstance(nodes_b, pd.DataFrame):
+            nb = nodes_layer(data["layer b"]["K"],data["layer b"]["name"],nodes_b,dict_codes=data["layer b"]["dict_codes"])
+        elif  nodes_b == None:
+            #later it will be created
+            nb = None
+
+
+
+        #creating BiNet
+        if na == None and nb == None:
+            BN = cls(links,links_label,
+                     nodes_a = None, Ka=data["layer a"]["K"], nodes_a_name=data["layer a"]["name"],
+                               dict_codes_a=data["layer a"]["dict_codes"],
+                     nodes_b = None, Kb=data["layer b"]["K"], nodes_b_name=data["layer b"]["name"],
+                               dict_codes_b=data["layer b"]["dict_codes"],
+                     separator=separator,dict_codes = data["dict_codes"])
+
+
+            #layer a
+            na = BN.nodes_a
+            #layer b
+            nb = BN.nodes_b
+
+        elif na == None:
+            BN = cls(links,links_label,
+                     nodes_a = None, Ka=data["layer a"]["K"], nodes_a_name=data["layer a"]["name"],dict_codes_a=data["layer a"]["dict_codes"],
+                     nodes_b = nb,
+                     separator=separator,dict_codes = data["dict_codes"])
+            #layer a
+            na = BN.nodes_a
+            #layer b
+            nb = BN.nodes_b
+
+
+        elif nb == None:
+            BN = cls(links,links_label,
+                     nodes_a = na,
+                     nodes_b = None, Kb=data["layer b"]["K"], nodes_b_name=data["layer b"]["name"],dict_codes_b=data["layer b"]["dict_codes"],
+                     separator=separator,dict_codes = data["dict_codes"])
+
+
+            #layer a
+            na = BN.nodes_a
+            #layer b
+            nb = BN.nodes_b
+
+        else:
+            BN = cls(links,links_label,
+                     nodes_a = na,
+                     nodes_b = nb,
+                     separator=separator,dict_codes = data["dict_codes"])
+
+        #metadatas
+        for l,layer in [("a",na),("b",nb)]:
+
+            #inclusives metadata
+            for meta in data["layer {}".format(l)]["metadata_inclusives"]:
+                layer.add_inclusive_metadata(meta["lambda"],
+                                  meta["Meta_name"],
+                                  meta["Tau"],
+                                  dict_codes = meta["dict_codes"])
+
+            #inclusives metadata
+            for meta in data["layer {}".format(l)]["metadata_exclusives"]:
+                layer.add_exclusive_metadata(meta["lambda"],
+                                  meta["Meta_name"],
+                                  dict_codes = meta["dict_codes"])
+
+
+        return BN
+
+
+
+        #MAP ALGORITHM
     def init_MAP(self,tol=0.001, seed=None):
         '''
         Initialize the MAP algorithm to get the most plausible memberhip parameters of the MMSBM
