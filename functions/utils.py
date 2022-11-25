@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import json
+import os,sys
 # from numba import jit
 
 def init_P_matrix(*shape):
@@ -57,7 +58,8 @@ def add_codes(layer,col_name):
 
 def finished(A,A_old,tol):
     """
-    Returns True if A and A_old are simmilar by looking if the mean absolute difference between A and A_old is lower than a tolerance tol
+    Returns True if A and A_old are simmilar by looking if the mean absolute difference between A and A_old is lower than a
+    tolerance tol
     """
     finished = False
     if(np.mean(np.abs(A-A_old))<tol):
@@ -78,8 +80,7 @@ def save_MMSBM_parameters(BiNet,dir=".",matrix_format="npy",BiNet_json=False):
         Directory where the files with the MMSBM parameters will be saved
 
     matrix_format: str, default: npy
-        Format that the matrices parameters will be saved. It can be, npy, npz, txt or dat
-        If you choose a format that is not npy or npz, they will be saved in a text file using the numpy.savetxt function
+        Format that the matrices parameters will be saved. It can be, npy or npz.
 
     BiNet_json: boolean, default: False
         If it is True, a the information of the BiNet class will be saved into a json.
@@ -89,10 +90,12 @@ def save_MMSBM_parameters(BiNet,dir=".",matrix_format="npy",BiNet_json=False):
 
     nb = BiNet.nodes_b
 
-    if matrix_format == "npy" or matrix_format == "npz":
+    if matrix_format == "npy":
         save_func = np.save
-    else:
-        save_func = np.savetxt
+    if matrix_format == "npz":
+        save_func = np.savez
+    # else:
+    #     save_func = np.savetxt
 
 
     save_func(dir+"/pkl."+matrix_format,BiNet.pkl)
@@ -101,7 +104,6 @@ def save_MMSBM_parameters(BiNet,dir=".",matrix_format="npy",BiNet_json=False):
 
     ##Metas saves
     for layer,str_layer in [(na,"a"),(nb,"b")]:
-        print(str_layer)
         save_func(dir+"/theta_{}.".format(str_layer)+matrix_format,layer.theta)
         ##inclusive_meta saves
         for i, meta in enumerate(layer.meta_inclusives):
@@ -172,3 +174,46 @@ def save_BiNet_dict(BiNet,dir="."):
     BiNet.info = dic_info
     with open(dir+'/BiNet_data.json', 'w') as outfile:
         json.dump(dic_info, outfile)
+
+
+def load_MAP_parameters(BiNet,dir="."):
+    """
+    It loads the parameters from matrices in the dir directory
+
+    Parameters:
+    -----------
+    BiNet: BiNet object
+        Bipartite network with the MMSBM initialized
+
+    dir: str, default: "."
+        Directory where the files with the MMSBM parameters will be loaded
+
+    """
+    na = BiNet.nodes_a
+
+    nb = BiNet.nodes_b
+
+    #format
+    for f in ["npy","npz","txt","dat"]:
+        if os.path.isfile(dir+"pkl."+f):
+            matrix_format = f
+            break
+
+    BiNet.pkl = np.load(dir+"pkl." + matrix_format)
+    BiNet.omega = np.load(dir+"omega." + matrix_format)
+
+
+
+    ##Metas saves
+    for layer,str_layer in [(na,"a"),(nb,"b")]:
+        layer.theta = np.load(dir+"/theta_{}.".format(str_layer)+matrix_format)
+        ##inclusive_meta saves
+        for i, meta in enumerate(layer.meta_inclusives):
+            meta.zeta = np.load(dir+"/zeta_{}.".format(str(meta))+matrix_format)
+            meta.q_k_tau = np.load(dir+"/q_k_tau_{}.".format(str(meta))+matrix_format)
+            meta.omega = np.load(dir+"/omega_{}_in_{}.".format(str_layer,str(meta))+matrix_format)
+
+        ##exclusive_meta saves
+        for i, meta in enumerate(layer.meta_exclusives):
+            meta.qka = np.load(dir+"/qka_{}.".format(str(meta))+matrix_format)
+            meta.omega = np.load(dir+"/omega_{}_ex_{}.".format(str_layer,str(meta))+matrix_format)
