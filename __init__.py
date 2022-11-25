@@ -827,7 +827,7 @@ class BiNet:
 
 
 
-        #MAP ALGORITHM
+    #MAP ALGORITHM
     def init_MAP(self,tol=0.001, seed=None):
         '''
         Initialize the MAP algorithm to get the most plausible memberhip parameters of the MMSBM
@@ -946,6 +946,111 @@ class BiNet:
 
         self.nodes_b.denominators = self.nodes_b.denominators[:,np.newaxis]
             # for meta in self.nodes_b.meta_exclusives:
+
+
+    def init_MAP_from_directory(self,dir="."):
+        '''
+        Initialize the MAP algorithm to get the most plausible memberhip parameters of the MMSBM using parameters saved in files that are in a directory
+
+        Parameters
+        -----------
+
+        dir: str, default: "."
+            Directory where the files with the MMSBM parameters will be loaded
+
+        '''
+        na = self.nodes_a
+
+        nb = self.nodes_b
+
+
+        load_MAP_parameters(self,dir)
+
+
+
+        #Omegas and denominators
+        self.omega = omega_comp_arrays(len(na),len(nb),self.pkl,na.theta,nb.theta,na.K,nb.K,self.links,self.labels_array)
+
+
+
+        #Metadata
+        ## qka and omegas
+        for meta in na.meta_exclusives:
+            meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,na.theta,len(na),na.K,meta.links)
+
+        for meta in nb.meta_exclusives:
+            meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,nb.theta,len(nb),nb.K,meta.links)
+
+
+        for meta in na.meta_inclusives:
+            meta.omega = omega_comp_arrays(len(na),len(meta),meta.q_k_tau,na.theta,meta.zeta,na.K,meta.Tau,meta.links,meta.labels)
+            #neighbours and denominators from meta
+            meta.denominators = np.zeros(len(meta))
+
+            for m in range(len(meta)):
+                meta.denominators[m] += len(meta.neighbours_meta[m])
+            meta.denominators = meta.denominators[:,np.newaxis]
+
+
+
+        for meta in nb.meta_inclusives:
+            meta.omega = omega_comp_arrays(len(nb),len(meta),meta.q_k_tau,nb.theta,meta.zeta,nb.K,meta.Tau,meta.links,meta.labels)
+
+            #neighbours and denominators from meta
+            meta.denominators = np.zeros(len(meta))
+
+            for m in range(len(meta)):
+                meta.denominators[m] += len(meta.neighbours_meta)
+
+
+        #creating arrays with the denominator (that are constants) of each node in both layers and em layers
+
+        ##nodes a
+        na.denominators = np.zeros(len(na))
+
+        self.neighbours_nodes_a = [] #list of list of neighbours
+        for node in range(len(na)):
+            #neighbours in BiNet
+            self.neighbours_nodes_a.append(self.df[self.df[str(na)+"_id"] == node][str(nb)+"_id"].values)
+            na.denominators[node] += len(self.neighbours_nodes_a[-1])
+
+        #neighbours in meta exclusives
+        for i, meta in enumerate(na.meta_exclusives):
+            for node in meta.links[:,0]:
+                na.denominators[node] += meta.lambda_val
+
+        #neighbours in meta inclusives
+        for node in range(len(na)):
+            for i, meta in enumerate(na.meta_inclusives):
+                na.denominators[node] += meta.lambda_val*len(meta.links[meta.links[:,0]==node,:])
+
+
+        na.denominators = na.denominators[:,np.newaxis]
+
+
+
+        ##nodes b
+        nb.denominators = np.zeros(len(nb))
+
+        self.neighbours_nodes_b = [] #list of list of neighbours
+        for node in range(len(nb)):
+            #neighbours in BiNet
+            self.neighbours_nodes_b.append(self.df[self.df[str(nb)+"_id"] == node][str(na)+"_id"].values)
+            nb.denominators[node] += len(self.neighbours_nodes_b[-1])
+
+        #neighbours in meta exclusives
+        for i, meta in enumerate(nb.meta_exclusives):
+            for node in meta.links[:,0]:
+                nb.denominators[node] += meta.lambda_val
+
+        #neighbours in meta inclusives
+        for node in range(len(nb)):
+            for i, meta in enumerate(nb.meta_inclusives):
+                nb.denominators[node] += meta.lambda_val*len(meta.links[meta.links[:,0]==node,:])
+
+            #neighbours in meta inclusives
+
+        nb.denominators = nb.denominators[:,np.newaxis]
 
 
     def MAP_step(self,N_steps=1):
