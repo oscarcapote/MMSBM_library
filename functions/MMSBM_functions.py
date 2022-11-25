@@ -43,7 +43,7 @@ def theta_comp_arrays_multilayer(BiNet,layer = "a"):
         na = BiNet.nodes_b
         observed = BiNet.observed_nodes_b
         non_observed = BiNet.non_observed_nodes_b
-    else: raise TypeError("layer must be 'a' or 'b'")
+    else: raise TypeError("Layer must be 'a' or 'b'")
 
     #Nodes b
 #     nb = BiNet.nodes_b
