@@ -710,23 +710,23 @@ class BiNet:
         self.links = self.df[[nodes_a_name + "_id", nodes_b_name + "_id"]].values
 
 
-        #observed nodes in each layer
-        self.observed_nodes_a = np.unique(self.links[:,0])
-        self.observed_nodes_b = np.unique(self.links[:,1])
-
-        #non_observed nodes in each layer
-        self.non_observed_nodes_a = np.array([i for i in range(len(self.nodes_a)) if i not in self.observed_nodes_a])
-        self.non_observed_nodes_b = np.array([i for i in range(len(self.nodes_b)) if i not in self.observed_nodes_b])
+        # #observed nodes in each layer
+        # self.observed_nodes_a = np.unique(self.links[:,0])
+        # self.observed_nodes_b = np.unique(self.links[:,1])
+        #
+        # #non_observed nodes in each layer
+        # self.non_observed_nodes_a = np.array([i for i in range(len(self.nodes_a)) if i not in self.observed_nodes_a])
+        # self.non_observed_nodes_b = np.array([i for i in range(len(self.nodes_b)) if i not in self.observed_nodes_b])
 
 
 
         self.N_labels = max(self.labels_array)+1
 
         #masks list to know wich links have label r (that is the index of the list)
-        self.masks_label_list = []
-        for r in range(self.N_labels):
-            mask = np.argwhere(self.labels_array==r)[:,0]
-            self.masks_label_list.append(mask)
+        # self.masks_label_list = []
+        # for r in range(self.N_labels):
+        #     mask = np.argwhere(self.labels_array==r)[:,0]
+        #     self.masks_label_list.append(mask)
 
 
     @classmethod
@@ -828,7 +828,7 @@ class BiNet:
 
 
     #MAP ALGORITHM
-    def init_MAP(self,tol=0.001, seed=None):
+    def init_MAP(self,tol=0.001, training = None, seed=None):
         '''
         Initialize the MAP algorithm to get the most plausible memberhip parameters of the MMSBM
 
@@ -839,6 +839,10 @@ class BiNet:
 
         seed: int, None, default: None
             Seed to generate the matrices. Is initialized using the np.random.RandomState(seed) method.
+
+        training: DataFrame, list, default: None
+            DataFrame with the links that you want to use to train your MMSBM.
+            If it is a list, it must contain the indexes of the links list that will be used to train the MMSBM.
 
         '''
         # Probability matrices
@@ -853,9 +857,35 @@ class BiNet:
         self.nodes_a.theta = init_P_matrix(len(self.nodes_a),self.nodes_a.K)
         self.nodes_b.theta = init_P_matrix(len(self.nodes_b),self.nodes_b.K)
 
+        # Links to train management
+        if isinstance(training,pd.DataFrame):
+            self.links_training = training[str(self.nodes_a)+"_id",str(self.nodes_b)+"_id"].values
+            self.labels_training = training[self.labels_name+"_id"].values
+        elif isinstance(training,list) or isinstance(training,np.ndarray):
+            self.links_training = self.links[training]
+            self.labels_training = self.labels_array[training]
+        elif training == None:
+            self.links_training = self.links
+            self.labels_training = self.labels_array
 
-        # print("aqui1",self.pkl.shape)
-        self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links,self.labels_array)
+        #masks list to know wich links have label r (that is the index of the list)
+        self.masks_label_list = []
+        for r in range(self.N_labels):
+            mask = np.argwhere(self.labels_training==r)[:,0]
+            self.masks_label_list.append(mask)
+
+        #observed nodes in each layer
+        self.observed_nodes_a = np.unique(self.links[:,0])
+        self.observed_nodes_b = np.unique(self.links[:,1])
+
+        #non_observed nodes in each layer
+        self.non_observed_nodes_a = np.array([i for i in range(len(self.nodes_a)) if i not in self.observed_nodes_a])
+        self.non_observed_nodes_b = np.array([i for i in range(len(self.nodes_b)) if i not in self.observed_nodes_b])
+
+
+
+
+        self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links_training,self.labels_training)
 
 
 
@@ -1097,8 +1127,8 @@ class BiNet:
                 meta.q_k_tau = p_kl_comp_arrays(nb.K,meta.Tau,2,meta.links,meta.omega,meta.masks_label_list)
                 meta.omega = omega_comp_arrays(len(self.nodes_b),len(meta),meta.q_k_tau,self.nodes_b.theta,meta.zeta,self.nodes_b.K,meta.Tau,meta.links,meta.labels)
 
-            self.pkl = p_kl_comp_arrays(na.K,nb.K,self.N_labels, self.links, self.omega, self.masks_label_list)
-            self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links,self.labels_array)
+            self.pkl = p_kl_comp_arrays(na.K,nb.K,self.N_labels, self.links_training, self.omega, self.masks_label_list)
+            self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links_training,self.labels_training)
 
 
     def get_log_likelihoods(self):
@@ -1110,7 +1140,7 @@ class BiNet:
         nb = self.nodes_b
 
         #log-like from the labels network
-        self.log_likelihood = log_like_comp(na.theta,nb.theta,self.pkl,self.links,self.labels_array)
+        self.log_likelihood = log_like_comp(na.theta,nb.theta,self.pkl,self.links_training,self.labels_training)
 
         #log-like from the metadata networks
         for layer in [na,nb]:
