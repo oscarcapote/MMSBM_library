@@ -75,7 +75,7 @@ def theta_comp_arrays_multilayer(BiNet,layer = "a"):
 
     ##if no metadata we put means in cold starts
     if not na.has_metas and len(non_observed)!=0:
-        means = np.sum(new_theta[observed,:],axis=0)/float(len(observed))
+        means = np.mean(new_theta[observed,:],axis=0)
         new_theta[non_observed] = means
 
     return new_theta
@@ -138,6 +138,14 @@ def log_like_comp(theta,eta,pkl,links,labels):
     P = np.moveaxis(pkl[:,:,labels], -1,0)
 
     return np.log(((T@E)*P).sum(axis=(1,2))).sum()
+
+
+def total_p_comp_test(theta,eta,pkl,links):
+    """
+    Computes the probabilities that two nodes are connected with each link label.
+    """
+    TE = theta[links[:,0]][:,:,np.newaxis]@eta[links[:,1]][:,np.newaxis,:]
+    return (TE[:,:,:,np.newaxis]*pkl[:,:,:]).sum(axis=(1,2))
 
 
 def log_like_comp_exclusive(theta,qka,links):

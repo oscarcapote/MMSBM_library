@@ -1151,13 +1151,39 @@ class BiNet:
             for i, meta in enumerate(layer.meta_exclusives):
                 meta.log_likelihood = log_like_comp_exclusive(layer.theta,meta.qka,meta.links)
 
+    def get_links_probabilities(self, links = None):
+        """
+        Computes the links labels probabilities trained BiNet for a set of links.
+
+        Parameters
+        ----------
+        links: ndarray of 1 or 2 dimensions, default:None
+            Array with the links that you want to get probabilites that are connected for each label
+            -If is a 2d-array, the first column must contain the ids from nodes_a layer and the second
+            column must contains the ids from nodes_b layer.
+            -If it is a 1d-array, it must contain the positions of the links list from self.df attribute
+            -If it is None, self.links_training will be used.
+
+        Returns
+        -------
+        Pij_r: ndarray of shape (len(links),self.N_labels)
+            Pij_r[l,r] is the probability that the link l has a label r
+        """
+        if links is None:
+            self.Pij_r = total_p_comp_test(self.nodes_a.theta,self.nodes_b.theta,self.pkl,self.links_training)
+        elif len(links.shape) == 1:
+            self.Pij_r = total_p_comp_test(self.nodes_a.theta,self.nodes_b.theta,
+                                            self.pkl,self.links[links])
+        elif len(links.shape) == 2:
+            self.Pij_r = total_p_comp_test(self.nodes_a.theta,self.nodes_b.theta,
+                                            self.pkl,links)
+
+        return self.Pij_r
 
 
     def deep_copying(self):
         """
         It makes a deep copy of all the parameters from the MAP algorithm
-
-
         """
         na = self.nodes_a
 
