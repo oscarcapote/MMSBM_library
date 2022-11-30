@@ -348,6 +348,8 @@ class nodes_layer:
 
         self.meta_neighbours_exclusives.append(meta_neighbours)
 
+        
+
     def add_inclusive_metadata(self, lambda_val, meta_name, Tau,*,dict_codes=None, separator="|"):
         '''
         Add inclusive_metadata object to node_layer object
@@ -875,8 +877,8 @@ class BiNet:
             self.masks_label_list.append(mask)
 
         #observed nodes in each layer
-        self.observed_nodes_a = np.unique(self.links[:,0])
-        self.observed_nodes_b = np.unique(self.links[:,1])
+        self.observed_nodes_a = np.unique(self.links_training[:,0])
+        self.observed_nodes_b = np.unique(self.links_training[:,1])
 
         #non_observed nodes in each layer
         self.non_observed_nodes_a = np.array([i for i in range(len(self.nodes_a)) if i not in self.observed_nodes_a])
@@ -934,7 +936,7 @@ class BiNet:
         self.neighbours_nodes_a = [] #list of list of neighbours
         for node in range(len(self.nodes_a)):
             #neighbours in BiNet
-            self.neighbours_nodes_a.append(self.df[self.df[str(self.nodes_a)+"_id"] == node][str(self.nodes_b)+"_id"].values)
+            self.neighbours_nodes_a.append(self.links_training[self.links_training[:,0]==node,1])
             self.nodes_a.denominators[node] += len(self.neighbours_nodes_a[-1])
 
         #neighbours in meta exclusives
@@ -959,7 +961,7 @@ class BiNet:
         self.neighbours_nodes_b = [] #list of list of neighbours
         for node in range(len(self.nodes_b)):
             #neighbours in BiNet
-            self.neighbours_nodes_b.append(self.df[self.df[str(self.nodes_b)+"_id"] == node][str(self.nodes_a)+"_id"].values)
+            self.neighbours_nodes_b.append(self.links_training[self.links_training[:,1]==node,0])
             self.nodes_b.denominators[node] += len(self.neighbours_nodes_b[-1])
 
         #neighbours in meta exclusives
@@ -999,7 +1001,7 @@ class BiNet:
 
 
         #Omegas and denominators
-        self.omega = omega_comp_arrays(len(na),len(nb),self.pkl,na.theta,nb.theta,na.K,nb.K,self.links,self.labels_array)
+        self.omega = omega_comp_arrays(len(na),len(nb),self.pkl,na.theta,nb.theta,na.K,nb.K,self.links_training,self.labels_training)
 
 
 
@@ -1039,9 +1041,9 @@ class BiNet:
         na.denominators = np.zeros(len(na))
 
         self.neighbours_nodes_a = [] #list of list of neighbours
-        for node in range(len(na)):
+        for node in self.observed_nodes_a:
             #neighbours in BiNet
-            self.neighbours_nodes_a.append(self.df[self.df[str(na)+"_id"] == node][str(nb)+"_id"].values)
+            self.neighbours_nodes_a.append(self.links_training[self.links_training[:,0]==node][:,1])
             na.denominators[node] += len(self.neighbours_nodes_a[-1])
 
         #neighbours in meta exclusives
@@ -1063,9 +1065,9 @@ class BiNet:
         nb.denominators = np.zeros(len(nb))
 
         self.neighbours_nodes_b = [] #list of list of neighbours
-        for node in range(len(nb)):
+        for node in self.observed_nodes_b:
             #neighbours in BiNet
-            self.neighbours_nodes_b.append(self.df[self.df[str(nb)+"_id"] == node][str(na)+"_id"].values)
+            self.neighbours_nodes_b.append(self.links_training[self.links_training[:,1]==node][:,0])
             nb.denominators[node] += len(self.neighbours_nodes_b[-1])
 
         #neighbours in meta exclusives
