@@ -232,8 +232,8 @@ class nodes_layer:
         K: Int
             Number of membership groups of nodes_layer
 
-        nodes_list: list, DataFrame or DataSeries
-            List, DataFrame or DataSeries with all the nodes
+        nodes_list: array-like, DataFrame or DataSeries
+            array-like, DataFrame or DataSeries with all the nodes
 
         nodes_name: str
             Name of the nodes type (users, movies, metobolites...) that are or will be in DataFrame
@@ -242,7 +242,7 @@ class nodes_layer:
             Dictionary where the keys are the names of nodes, and the values are their ids. If None, the program will generate the ids.
 
         '''
-        if isinstance(nodes_list, list):
+        if isinstance(nodes_list, list) or isinstance(nodes_list, np.ndarray):
             new_df = pd.DataFrame({nodes_name: nodes_list})
         elif isinstance(nodes_list, pd.Series):
             new_df = pd.DataFrame(nodes_list)
@@ -348,7 +348,7 @@ class nodes_layer:
 
         self.meta_neighbours_exclusives.append(meta_neighbours)
 
-        
+
 
     def add_inclusive_metadata(self, lambda_val, meta_name, Tau,*,dict_codes=None, separator="|"):
         '''
@@ -662,7 +662,7 @@ class BiNet:
         elif isinstance(nodes_a, pd.DataFrame):
             self.nodes_a = nodes_layer(Ka, nodes_a_name, nodes_a, dict_codes = dict_codes_a)
         elif  nodes_a == None:
-            self.nodes_a = nodes_layer.create_simple_layer(Ka, self.df[nodes_a_name], nodes_a_name, dict_codes = dict_codes_a)
+            self.nodes_a = nodes_layer.create_simple_layer(Ka, self.df[nodes_a_name].unique(), nodes_a_name, dict_codes = dict_codes_a)
 
         # creating second layer class
         if isinstance(nodes_b, nodes_layer):
@@ -674,7 +674,7 @@ class BiNet:
         elif isinstance(nodes_b, pd.DataFrame):
             self.nodes_b = nodes_layer(Kb, nodes_b_name, nodes_b, dict_codes = dict_codes_b)
         elif nodes_b == None:
-            self.nodes_b = nodes_layer.create_simple_layer(Kb, self.df[nodes_b_name], nodes_b_name, dict_codes = dict_codes_b)
+            self.nodes_b = nodes_layer.create_simple_layer(Kb, self.df[nodes_b_name].unique(), nodes_b_name, dict_codes = dict_codes_b)
 
 
         ## Coding labels
@@ -705,8 +705,11 @@ class BiNet:
 
 
         #Links
-        self.df = self.df.join(self.nodes_a.df[[nodes_a_name,nodes_a_name + "_id"]].set_index(nodes_a_name),on=nodes_a_name)
-        self.df = self.df.join(self.nodes_b.df[[nodes_b_name,nodes_b_name + "_id"]].set_index(nodes_b_name),on=nodes_b_name)
+        self.df[nodes_a_name + "_id"] = self.df[[nodes_a_name]].replace({nodes_a_name:self.nodes_a.dict_codes})
+        self.df[nodes_b_name + "_id"] = self.df[[nodes_b_name]].replace({nodes_b_name:self.nodes_b.dict_codes})
+        
+        #self.df = self.df.join(self.nodes_a.df[[nodes_a_name,nodes_a_name + "_id"]].set_index(nodes_a_name),on=nodes_a_name)
+        #self.df = self.df.join(self.nodes_b.df[[nodes_b_name,nodes_b_name + "_id"]].set_index(nodes_b_name),on=nodes_b_name)
 
         self.df = self.df.drop_duplicates()
         self.links = self.df[[nodes_a_name + "_id", nodes_b_name + "_id"]].values
@@ -1159,11 +1162,12 @@ class BiNet:
 
         Parameters
         ----------
-        links: ndarray of 1 or 2 dimensions, default:None
+        links: ndarray of 1 or 2 dimensions, pandas DataFrame, default:None
             Array with the links that you want to get probabilites that are connected for each label
             -If is a 2d-array, the first column must contain the ids from nodes_a layer and the second
             column must contains the ids from nodes_b layer.
             -If it is a 1d-array, it must contain the positions of the links list from self.df attribute
+            -If it is a pandas DataFrame, it must contains, at least, two columns with the names of the nodes layers.
             -If it is None, self.links_training will be used.
 
         Returns
@@ -1172,16 +1176,176 @@ class BiNet:
             Pij_r[l,r] is the probability that the link l has a label r
         """
         if links is None:
-            self.Pij_r = total_p_comp_test(self.nodes_a.theta,self.nodes_b.theta,self.pkl,self.links_training)
-        elif len(links.shape) == 1:
-            self.Pij_r = total_p_comp_test(self.nodes_a.theta,self.nodes_b.theta,
-                                            self.pkl,self.links[links])
-        elif len(links.shape) == 2:
-            self.Pij_r = total_p_comp_test(self.nodes_a.theta,self.nodes_b.theta,
+            Pij = total_p_comp_test(self.nodes_a.theta,self.nodes_b.theta,self.pkl,self.links_training)
+        elif isinstance(links,pd.DataFrame):
+            N = links.columns.isin([str(self.nodes_a)+"_id",str(self.nodes_b)+"_id"]).sum()
+
+            if N==2:
+                links = links[[str(self.nodes_a)+"_id",str(self.nodes_b)+"_id"]].values
+            elif N==0:
+                links = links[[str(self.nodes_a),str(self.nodes_b)]].replace(to_replace={str(self.nodes_a):self.nodes_a.dict_codes,str(self.nodes_b):self.nodes_b.dict_codes}).values
+            elif N==1:
+                if links.columns.isin([str(self.nodes_a)+"_id"]).any():
+                    links = links[[str(self.nodes_a)+"_id",str(self.nodes_b)]].replace(to_replace={str(self.nodes_b):self.nodes_b.dict_codes}).values
+                else:
+                    links = links[[str(self.nodes_a),str(self.nodes_b)+"_id"]].replace(to_replace={str(self.nodes_a):self.nodes_a.dict_codes}).values
+
+            Pij = total_p_comp_test(self.nodes_a.theta,self.nodes_b.theta,
                                             self.pkl,links)
 
-        return self.Pij_r
+        elif len(links.shape) == 1:
+            Pij = total_p_comp_test(self.nodes_a.theta,self.nodes_b.theta,
+                                            self.pkl,self.links[links])
+        elif len(links.shape) == 2:
+            Pij = total_p_comp_test(self.nodes_a.theta,self.nodes_b.theta,
+                                            self.pkl,links)
 
+        return Pij
+
+
+    def get_predicted_labels(self, to_return = "df", Pij = None, links = None, estimator = "max_probability"):
+        """
+        Computes the predicted labels of the model given the MMSBM parameters. They can be measured by different estimators:
+            max_probability: The predicted label will be the most plausible label
+            mean: The predicted label will be the mean
+
+        Parameters
+        ----------
+        to_return: {"df","ids", "both"}, default: df
+            Option to choose how the predicted labels will be returned.
+             -df: A dataframe with the columns being the nodes from both layers and an extra column called predicted_+self.label_name
+             -ids: A ndarray of ints with the ids of the predicted labels
+             -both: It will return the df and the ndarray in this order.
+
+        links: ndarray of 1 or 2 dimensions, pandas DataFrame, default: None
+            Array with the links that you want to get probabilites that are connected for each label.
+            -If it is a 2d-array, the first column must contain the ids from nodes_a layer and the second
+            column must contains the ids from nodes_b layer.
+            -If it is a 1d-array, it must contains the positions of the links list from self.df attribute
+            -If it is a pandas dataFrame, it must contains at less two columns with the name of the nodes layer.
+            -If it is None, self.links_training will be used.
+
+        estimator: {"max_probability","average"}, default: max_probability
+            Estimator used to get the predicted labels:
+            -max_probability: The selected label is the most plausible label
+            -mean: The selected label is mean label (sum [Pij(l)*l])
+
+        Returns
+        -------
+        labels_id: ndarray
+            Predicted labels id
+
+        labels_df: pandas DataFrame
+            Dataframe whose columns are nodes_a, nodes_b and the prediced labels
+        """
+        if isinstance(Pij,np.ndarray):
+            if estimator=="max_probability":
+                labels_id =  Pij.argmax(axis=1)
+            elif estimator=="mean":
+                labels_id = np.rint(Pij@np.arange(0,self.N_labels)[:,np.newaxis])[:,0]
+        else:
+            Pij = self.get_links_probabilities(links)
+            if estimator=="max_probability":
+                labels_id = Pij.argmax(axis=1)
+            elif estimator=="mean":
+                labels_id = np.rint(Pij@np.arange(0,self.N_labels)[:,np.newaxis])[:,0]
+
+        if to_return == "df" or to_return == "both":
+            if links is None:
+                to_link = self.links_training
+            elif isinstance(links,pd.DataFrame):
+                decoder = {self.dict_codes[n]:n for n in self.dict_codes}
+                labels = [decoder[n] for n in labels_id]
+                links["Predicted "+self.labels_name] = labels
+
+                if to_return == "df":
+                    return links
+                elif to_return == "both":
+                    return links, labels_id
+            elif len(links.shape)==1:
+                to_link = self.links[links]
+            elif len(links.shape)==2:
+                to_link = links
+
+
+            na = self.nodes_a
+            nb = self.nodes_b
+
+            decoder = {na.dict_codes[n]:n for n in na.dict_codes}
+            A = [decoder[n] for n in to_link[:,0]]
+
+            decoder = {nb.dict_codes[n]:n for n in nb.dict_codes}
+            B = [decoder[n] for n in to_link[:,1]]
+
+            decoder = {self.dict_codes[n]:n for n in self.dict_codes}
+            labels = [decoder[n] for n in labels_id]
+
+            if to_return == "df":
+                return pd.DataFrame({str(na):A,str(nb):B,"Predicted "+self.labels_name:labels})
+            elif to_return == "both":
+                return pd.DataFrame({str(na):A,str(nb):B,"Predicted "+self.labels_name:labels}), labels_id
+
+        elif to_return == "ids":
+            return labels_id
+
+    def get_accuracy(self, predicted_labels = None, test_labels = None, Pij = None,links = None, estimator = "max_probability"):
+        """
+        Computes the predicted labels of the model given the MMSBM parameters. They can be measured by different estimators:
+            -max_probability: The predicted label will be the most plausible label
+            -mean: The predicted label will be the mean
+
+        Parameters
+        ----------
+        predicted_labels: array-like, default:None.
+            Array-like with the predicted labels ids given by the MMSBM
+
+        test_labels: array-like, default:None.
+            List or array with the observed labels
+            If it is None, labels from self.labels_array are taken given pos_test_labels
+
+        links: ndarray of 1 or 2 dimensions, pandas DataFrame, default: None
+            Array with the links that you want to get probabilites that are connected for each label.
+            -If it is a 2d-array, the first column must contain the ids from nodes_a layer and the second
+             column must contains the ids from nodes_b layers.
+            -If it is a 1d-array, it must contains the positions of the links list from self.df attribute
+            -If it is a pandas dataFrame, it must contains at less two columns with the name of the nodes layer
+             and a column with the same name as the labels column from BiNet.df.
+            -If it is None, self.links_training will be used.
+
+
+        estimator: {"max_probability","mean"}, default: max_probability
+            Estimator used to get the predicted labels:
+            -max_probability: The selected label is the most plausible label
+            -mean: The selected label is mean label (sum [Pij(l)*l])
+
+        Returns
+        -------
+        accuracy: float
+            Ratio of well predicted labels
+        """
+
+        if predicted_labels is None:
+            predicted_labels = self.get_predicted_labels(to_return = "ids", links = links, Pij = Pij, estimator = estimator)
+
+        if test_labels is None:
+            if isinstance(links,pd.DataFrame):
+                if links.columns.isin([str(self.labels_name)+"_id"]).any():
+                    test_labels = links[str(self.labels_name)+"_id"].values
+                elif links.columns.isin([str(self.labels_name)]).any():
+                    test_labels = links.replace({self.labels_name:self.dict_codes}).values[:,2]
+
+            elif isinstance(links,np.ndarray):
+                if len(links.shape)==1:
+                    test_labels = self.labels_array[links]
+                else:
+                    raise TypeError("""Missing test label information to compare:
+                                     -Array in test_labels with labels ids.
+                                     -Pandas DataFrame with links and their labels in links parameter.
+                                     -Links position of the BiNet.links_array.""")
+            elif links is None:
+                test_labels = self.labels_training
+        # print(predicted_labels.shape,test_labels.shape,predicted_labels==test_labels,predicted_labels,test_labels)
+        return (predicted_labels==test_labels).sum()/len(predicted_labels)
 
     def deep_copying(self):
         """
