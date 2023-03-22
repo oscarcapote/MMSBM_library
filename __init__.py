@@ -3,11 +3,6 @@
 
 import pandas as pd
 import numpy as np
-from string import ascii_lowercase
-from copy import deepcopy
-# from numba import jit,prange,int64,double,vectorize,float64
-from time import time
-import os, sys
 from MMSBM_library.functions import *
 
 
@@ -31,6 +26,15 @@ class metadata_layer:
     # def N_meta(self, N_meta):
     #     self._N_meta = N_meta
     #     return self._N_meta
+
+    @property
+    def dict_codes(self):
+        return self.dict_codes
+
+    @dict_codes.setter
+    def dict_codes(self,dict_codes):
+        self.dict_codes = dict_codes
+        return dict_codes
 
     @property
     def N_att(self):
@@ -67,8 +71,6 @@ class metadata_layer:
         Returns
         -------
         links: 2D NumPy array with the links between nodes and metadata
-
-
         """
 
         self._links = links
@@ -79,7 +81,7 @@ class metadata_layer:
 
     def __str__(self):
         return self.meta_name
-    #
+
 
 
 class exclusive_metadata(metadata_layer):
@@ -152,21 +154,63 @@ class inclusive_metadata(metadata_layer):
 
 class nodes_layer:
     """
-        Base class of a layer that contains nodes
+    Base class of a layer that contains nodes
 
-        Is initialized using a dataframe and can be modify it  using the df attribute
+    Is initialized using a dataframe and can be modify it  using the df attribute
 
-        The rest of the columns of the dataframe can contain information (metadata) from the nodes.
-        This metadata can be added as a metadata_layer object considering the network as multipartite network.
-        This metadata can be classify it as exclusive_metadata (if a node only accepts one attribute) and inclusive_metadata (if the node accepts more than one attribute)
+    The rest of the columns of the dataframe can contain information (metadata) from the nodes.
+    This metadata can be added as a metadata_layer object considering the network as multipartite network.
+    This metadata can be classify it as exclusive_metadata (if a node only accepts one attribute) and inclusive_metadata (if the node accepts more than one attribute)
 
-        See for more information of metadata: metadata_layer, exclusive_metadata and inclusive_metadata.
+    See for more information of metadata: metadata_layer, exclusive_metadata and inclusive_metadata.
 
-        These objects can be added into a BiNet (bipartite network) where connection between nodes_layer are considered to infer links and their labels  (see BiNet)
+    These objects can be added into a BiNet (bipartite network) where connection between nodes_layer are considered to infer links and their labels  (see BiNet)
+
+    ...
+
+    Attributes
+    ----------
+    K: int
+        Number of groups.
+    node_type: str
+        Name of the layer. Also is the name of the column where the nodes' name are contained.
+    df: pandas dataFrame
+        DataFrame that contains the nodes information. It contains one column
+        with the nodes' name and the rest are attributes.
+    dict_codes: dict
+        Dictionary with the integer id of the nodes. The key is the nodes' name and the value its id.
+    meta_exclusives: list of metadata_layer
+        List with the metadata exclusives object that contains the metadata that will be used in the MAP algorithm.
+    meta_inclusives: list of metadata_layer
+        List with the metadata inclusives object that contains the metadata that will be used in the MAP algorithm.
+    meta_neighbours_exclusives:
+        List of lists that contains, for each node its exclusives metadata neighbours
+    meta_neighbours_inclusives:
+        List of lists that contains, for each node its inclusives metadata neighbours
+    nodes_observed_inclusive:
+        List of arrays for each metadata with the nodes that has assigned an attribute of the metadata
+
     """
 
 
     def __init__(self, K, nodes_name, nodes_info, *, separator="\t", dict_codes = None, **kwargs):
+        """
+        Initialization of the nodes_layer class
+
+        Parameters
+        ----------
+        K: int
+            Number of groups
+        nodes_name: str
+            Name of the nodes column in the nodes_layer class
+        nodes_info: str or pandas DataFrame
+            Is it is a string, it is the directory of the file with the nodes informations
+        separator: str, default \t
+            Separator if the columns of the file that contains the nodes information
+        dict_codes: dict, default None
+            Dictionary with the integer id of the nodes. The key is the nodes' name and the value its id.
+        """
+
         self.K = K
         self.node_type = nodes_name
 
@@ -208,9 +252,9 @@ class nodes_layer:
         self.meta_inclusives = []
         self.meta_neighbours_exclusives = []
         self.meta_neighbours_inclusives = []  # all neighbours (connected and not) of inclusive metadata
-        self.inclusive_linked = []  # metadata inclusive for each node
+        # self.inclusive_linked = []  # metadata inclusive for each node
         self.nodes_observed_inclusive = []
-        self.has_metas = False  #Boolean that tells you if you have metadata initialized with non 0 values of lambda_val
+        self._has_metas = False  #Boolean that tells you if you have metadata initialized with non 0 values of lambda_val
 
         self.N_nodes = len(self.nodes_list)
         self.N_meta_exclusive = 0
@@ -300,7 +344,7 @@ class nodes_layer:
         df_dropna = self.df.dropna(subset=[meta_name])
         observed = df_dropna[str(self)+"_id"].values
 
-        if lambda_val>1.e-16:self.has_metas = True
+        if lambda_val>1.e-16:self._has_metas = True
 
         # encode metadata
         # codes = pd.Categorical(self.df[meta_name]).codes
@@ -387,7 +431,7 @@ class nodes_layer:
         observed_id = df_dropna[self.node_type + "_id"].values  # Nodes with known metadata
 
 
-        if lambda_val>1.e-16:self.has_metas = True
+        if lambda_val>1.e-16:self._has_metas = True
 
 
         # encode metadata
@@ -419,9 +463,7 @@ class nodes_layer:
                 if l == None: continue
                 for m in l:
                     codes[m] = codes.get(m, len(codes))
-
-
-        im.dict_codes = codes
+            im.dict_codes = codes
 
 
         decodes = {codes[i]:i for i in codes}
@@ -478,122 +520,152 @@ class nodes_layer:
         self.meta_neighbours_inclusives.append(meta_neighbours)
 
 
-        def update_exclusives_id(self, em, dict_codes):
-            '''
-                Changes the ids (the integer assigned to each metadata attribute) given the dict_codes.
+    def update_exclusives_id(self, em, dict_codes):
+        '''
+        Changes the ids (the integer assigned to each metadata attribute) given the dict_codes.
 
-                Parameters
-                -----------
+        Parameters
+        -----------
 
-                dict_codes: dict
-                    Dictionary where the keys are the names of metadata's type, and the values are the ids.
-            '''
-            replacer = {}
-            for att in dict_codes:
-                replacer[em.dict_codes[att]]= dict_codes[att]
+        dict_codes: dict
+            Dictionary where the keys are the names of metadata's type, and the values are the ids.
+        '''
+        replacer = {}
+        for att in dict_codes:
+            replacer[em.dict_codes[att]]= dict_codes[att]
 
-            em.dict_codes = dict_codes
-            self.df.replace({em.meta_name +"_id":replacer}, inplace=True)
+        em.dict_codes = dict_codes
+        self.df.replace({em.meta_name +"_id":replacer}, inplace=True)
 
-            em.links = self.df[[self.node_type + "_id", em.meta_name + "_id"]].values
+        em.links = self.df[[self.node_type + "_id", em.meta_name + "_id"]].values
 
-            #list of arrays of ints where the array number att has all the index positions of links that connects the attribute att
-            em.masks_att_list = []
-            for r in range(em.N_att):
-                mask = np.argwhere(em.links[:,1]==r)[:,0]
-                em.masks_att_list.append(mask)
-
-
-
-            meta_neighbours = np.ones(self.N_nodes, dtype=np.int32)
-
-            for n in range(self.N_nodes):
-                meta_neighbours[n] = self.df[self.df[self.node_type + "_id" ]== n][em.meta_name + "_id"]#.values
-
-            for i,meta in enumerate(self.meta_exclusives):
-                if meta==em:
-                    self.meta_neighbours_exclusives[i] = meta_neighbours
-
-        def update_inclusives_id(self, im, dict_codes):
-            '''
-                Changes the ids (the integer assigned to each metadata attribute) given the dict_codes.
-
-                Parameters
-                -----------
-
-                dict_codes: dict
-                    Dictionary where the keys are the names of metadata's type, and the values are the ids. If None, the program will generate the ids.
-            '''
-            observed = self.nodes_observed_inclusive[im._meta_code]
-            meta_neighbours = []
-
-
-            #Replacer to change the ids
-            replacer = {}
-            for att in dict_codes:
-                replacer[im.dict_codes[att]]= dict_codes[att]
-
-
-            #New ids into the neigbours list
-            for neig in self.meta_neighbours_inclusives[im._meta_code]:
-                N = []
-                for ids in neig:
-                    N.append(replacer[ids])
-                meta_neighbours.append(N)
+        #list of arrays of ints where the array number att has all the index positions of links that connects the attribute att
+        em.masks_att_list = []
+        for r in range(em.N_att):
+            mask = np.argwhere(em.links[:,1]==r)[:,0]
+            em.masks_att_list.append(mask)
 
 
 
-            #changing codes dicts
-            codes = dict_codes
-            im.dict_codes = dict_codes
+        meta_neighbours = np.ones(self.N_nodes, dtype=np.int32)
+
+        for n in range(self.N_nodes):
+            meta_neighbours[n] = self.df[self.df[self.node_type + "_id" ]== n][em.meta_name + "_id"]#.values
+
+        for i,meta in enumerate(self.meta_exclusives):
+            if meta==em:
+                self.meta_neighbours_exclusives[i] = meta_neighbours
+
+    def update_inclusives_id(self, im, dict_codes):
+        '''
+        Changes the ids (the integer assigned to each metadata attribute) given the dict_codes.
+
+        Parameters
+        -----------
+
+        dict_codes: dict
+            Dictionary where the keys are the names of metadata's type, and the values are the ids. If None, the program will generate the ids.
+        '''
+        observed = self.nodes_observed_inclusive[im._meta_code]
+        meta_neighbours = []
 
 
-            decodes = {codes[i]:i for i in codes}
-            im.decodes = decodes
-            im.N_att = len(set(codes))
-
-            # Links between node and metadata type
-            links = np.ones((len(observed) * im.N_att, 2),dtype=np.int64)
-            # Label of the link: 0 if not connected 1 if connected
-            labels = np.zeros(len(observed) * im.N_att,dtype=np.int64)
-
-            index = 0
-            for i, o in enumerate(observed_id):
-                for a in range(im.N_att):
-                    links[index, 0] = o
-                    links[index, 1] = a
-                    if a in meta_neighbours[i]:
-                        labels[index] = 1
-
-                    index += 1
-
-            #list where the index is the attribute and the element is an array of the nodes that are connected to the same attribute
-            im.neighbours_meta = []
-            for att in range(im.N_att):
-                im.neighbours_meta.append(links[links[:,1]==att][:,0])
-
-            im.masks_att_list = [np.argwhere(links[:,1]==att)[:,0] for att in range(len(im))]
-
-            im.links = links
-            im.labels = labels
-            im.N_labels = 2#connected or disconnected
-            #nodes neigbours
+        #Replacer to change the ids
+        replacer = {}
+        for att in dict_codes:
+            replacer[im.dict_codes[att]]= dict_codes[att]
 
 
-            #masks list to know wich links have label r (that is the index of the list)
-            im.masks_label_list = []
-            for r in range(2):
-                mask = np.argwhere(im.labels==r)[:,0]
-                im.masks_label_list.append(mask)
+        #New ids into the neigbours list
+        for neig in self.meta_neighbours_inclusives[im._meta_code]:
+            N = []
+            for ids in neig:
+                N.append(replacer[ids])
+            meta_neighbours.append(N)
 
 
 
-            # update meta related nodes attributes
-            self.meta_neighbours_inclusives[im._meta_code] = [[m for m in L] for L in meta_neighbours]
+        #changing codes dicts
+        codes = dict_codes
+        im.dict_codes = dict_codes
+
+
+        decodes = {codes[i]:i for i in codes}
+        im.decodes = decodes
+        im.N_att = len(set(codes))
+
+        # Links between node and metadata type
+        links = np.ones((len(observed) * im.N_att, 2),dtype=np.int64)
+        # Label of the link: 0 if not connected 1 if connected
+        labels = np.zeros(len(observed) * im.N_att,dtype=np.int64)
+
+        index = 0
+        for i, o in enumerate(observed_id):
+            for a in range(im.N_att):
+                links[index, 0] = o
+                links[index, 1] = a
+                if a in meta_neighbours[i]:
+                    labels[index] = 1
+
+                index += 1
+
+        #list where the index is the attribute and the element is an array of the nodes that are connected to the same attribute
+        im.neighbours_meta = []
+        for att in range(im.N_att):
+            im.neighbours_meta.append(links[links[:,1]==att][:,0])
+
+        im.masks_att_list = [np.argwhere(links[:,1]==att)[:,0] for att in range(len(im))]
+
+        im.links = links
+        im.labels = labels
+        im.N_labels = 2#connected or disconnected
+        #nodes neigbours
+
+
+        #masks list to know wich links have label r (that is the index of the list)
+        im.masks_label_list = []
+        for r in range(2):
+            mask = np.argwhere(im.labels==r)[:,0]
+            im.masks_label_list.append(mask)
+
+
+
+        # update meta related nodes attributes
+        self.meta_neighbours_inclusives[im._meta_code] = [[m for m in L] for L in meta_neighbours]
 
 class BiNet:
     """
-    Class of a Bipartite Network, where two layers of different types of nodes are connected (users->items, politicians->bills, patient->microbiome...) and these links can be labeled with informations of the interaction (ratings, votes...)
+    Class of a Bipartite Network, where two layers of different types of nodes are connected (users->items,
+    politicians->bills, patient->microbiome...) and these links can be labeled with information of the
+    interaction (ratings, votes...).
+
+    ...
+
+    Attributes
+    ----------
+    labels_name:
+        Name of the labels column
+    N_labels:
+        Number of diferent types labels.
+    labels_array:
+        Array with all the ids of the labels.
+    labels_name:
+        List of the names of the diferents labels.
+    labels_training:
+        Array with all the ids of the labels used to train the MMSBM
+    df:
+        Dataframe with the links information, who connected to who and with which label are connected
+    dict_codes:
+        Dictionary with the integer id of the labels. The key is the labels' name and the value its id.
+    nodes_a,nodes_b:
+        nodes_layer objects of the nodes that are part from the bipartite network
+    links:
+        2D-array with the links of the nodes that are connected
+    links_training:
+        2D-array with the links of the nodes that are connected used to train the MMSBM
+
+
+    labels_array
 
 
     """
@@ -699,7 +771,6 @@ class BiNet:
 
         # codes = pd.Categorical(self.df[links_label]).codes
         # self.df = self.df.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
-        self.labels_array = self.df[links_label + "_id"].values
 
 
 
@@ -707,11 +778,12 @@ class BiNet:
         #Links
         self.df[nodes_a_name + "_id"] = self.df[[nodes_a_name]].replace({nodes_a_name:self.nodes_a.dict_codes})
         self.df[nodes_b_name + "_id"] = self.df[[nodes_b_name]].replace({nodes_b_name:self.nodes_b.dict_codes})
-        
+
         #self.df = self.df.join(self.nodes_a.df[[nodes_a_name,nodes_a_name + "_id"]].set_index(nodes_a_name),on=nodes_a_name)
         #self.df = self.df.join(self.nodes_b.df[[nodes_b_name,nodes_b_name + "_id"]].set_index(nodes_b_name),on=nodes_b_name)
 
         self.df = self.df.drop_duplicates()
+        self.labels_array = self.df[links_label + "_id"].values
         self.links = self.df[[nodes_a_name + "_id", nodes_b_name + "_id"]].values
 
 
@@ -985,7 +1057,7 @@ class BiNet:
 
     def init_MAP_from_directory(self,dir="."):
         '''
-        Initialize the MAP algorithm to get the most plausible memberhip parameters of the MMSBM using parameters saved in files that are in a directory
+        Initialize the MAP algorithm to get the most plausible membership parameters of the MMSBM using parameters saved in files that are in a directory
 
         Parameters
         -----------
