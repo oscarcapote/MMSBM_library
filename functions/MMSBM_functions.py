@@ -74,7 +74,7 @@ def theta_comp_arrays_multilayer(BiNet,layer = "a"):
     new_theta /= na.denominators
 
     ##if no metadata we put means in cold starts
-    if not na.has_metas and len(non_observed)!=0:
+    if not na._has_metas and len(non_observed)!=0:
         means = np.mean(new_theta[observed,:],axis=0)
         new_theta[non_observed] = means
 
