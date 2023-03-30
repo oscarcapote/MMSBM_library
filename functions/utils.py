@@ -99,7 +99,7 @@ def save_MMSBM_parameters(BiNet,dir=".",matrix_format="npy",BiNet_json=False):
 
 
     save_func(dir+"/pkl."+matrix_format,BiNet.pkl)
-    save_func(dir+"/omega."+matrix_format,BiNet.omega)
+    # save_func(dir+"/omega."+matrix_format,BiNet.omega)
 
 
     ##Metas saves
@@ -109,12 +109,12 @@ def save_MMSBM_parameters(BiNet,dir=".",matrix_format="npy",BiNet_json=False):
         for i, meta in enumerate(layer.meta_inclusives):
             save_func(dir+"/zeta_{}.".format(str(meta))+matrix_format,meta.zeta)
             save_func(dir+"/q_k_tau_{}.".format(str(meta))+matrix_format,meta.q_k_tau)
-            save_func(dir+"/omega_{}_in_{}.".format(str_layer,str(meta))+matrix_format,meta.omega)
+            # save_func(dir+"/omega_{}_in_{}.".format(str_layer,str(meta))+matrix_format,meta.omega)
 
         ##exclusive_meta saves
         for i, meta in enumerate(layer.meta_exclusives):
             save_func(dir+"/qka_{}.".format(str(meta))+matrix_format,meta.qka)
-            save_func(dir+"/omega_{}_ex_{}.".format(str_layer,str(meta))+matrix_format,meta.omega)
+            # save_func(dir+"/omega_{}_ex_{}.".format(str_layer,str(meta))+matrix_format,meta.omega)
 
     #BiNet json
     if BiNet_json:
@@ -133,6 +133,9 @@ def save_BiNet_dict(BiNet,dir="."):
         Directory where the files with the MMSBM parameters will be saved
 
     """
+    na = BiNet.nodes_a
+
+    nb = BiNet.nodes_b
     #other values from MAP and MMSBM saves
     dic_info = {}
     dic_info["dict_codes"] ={str(k):str(v) for k,v in BiNet.dict_codes.items()}
@@ -176,16 +179,16 @@ def save_BiNet_dict(BiNet,dir="."):
         json.dump(dic_info, outfile)
 
 
-def load_MAP_parameters(BiNet,dir="."):
+def load_MAP_parameters(BiNet,directory="."):
     """
-    It loads the parameters from matrices in the dir directory
+    It loads the parameters from matrices in the directory
 
     Parameters:
     -----------
     BiNet: BiNet object
         Bipartite network with the MMSBM initialized
 
-    dir: str, default: "."
+    directory: str, default: "."
         Directory where the files with the MMSBM parameters will be loaded
 
     """
@@ -193,27 +196,30 @@ def load_MAP_parameters(BiNet,dir="."):
 
     nb = BiNet.nodes_b
 
+    if directory[-1] != "/":
+        directory += "/"
+
     #format
     for f in ["npy","npz","txt","dat"]:
-        if os.path.isfile(dir+"pkl."+f):
+        if os.path.isfile(directory+"pkl."+f) or os.path.isfile(directory+"pkl."+f):
             matrix_format = f
             break
 
-    BiNet.pkl = np.load(dir+"pkl." + matrix_format)
-    BiNet.omega = np.load(dir+"omega." + matrix_format)
+    BiNet.pkl = np.load(directory+"pkl." + matrix_format)
+    # BiNet.omega = np.load(directory+"omega." + matrix_format)
 
 
 
     ##Metas saves
     for layer,str_layer in [(na,"a"),(nb,"b")]:
-        layer.theta = np.load(dir+"/theta_{}.".format(str_layer)+matrix_format)
+        layer.theta = np.load(directory+"theta_{}.".format(str_layer)+matrix_format)
         ##inclusive_meta saves
         for i, meta in enumerate(layer.meta_inclusives):
-            meta.zeta = np.load(dir+"/zeta_{}.".format(str(meta))+matrix_format)
-            meta.q_k_tau = np.load(dir+"/q_k_tau_{}.".format(str(meta))+matrix_format)
-            meta.omega = np.load(dir+"/omega_{}_in_{}.".format(str_layer,str(meta))+matrix_format)
+            meta.zeta = np.load(directory+"zeta_{}.".format(str(meta))+matrix_format)
+            meta.q_k_tau = np.load(directory+"q_k_tau_{}.".format(str(meta))+matrix_format)
+            # meta.omega = np.load(directory+"omega_{}_in_{}.".format(str_layer,str(meta))+matrix_format)
 
         ##exclusive_meta saves
         for i, meta in enumerate(layer.meta_exclusives):
-            meta.qka = np.load(dir+"/qka_{}.".format(str(meta))+matrix_format)
-            meta.omega = np.load(dir+"/omega_{}_ex_{}.".format(str_layer,str(meta))+matrix_format)
+            meta.qka = np.load(directory+"qka_{}.".format(str(meta))+matrix_format)
+            # meta.omega = np.load(directory+"omega_{}_ex_{}.".format(str_layer,str(meta))+matrix_format)
