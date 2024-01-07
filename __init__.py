@@ -13,22 +13,58 @@ class metadata_layer:
     It has two subclasses:
         - exclusive_metadata
         - inclusive_metadata
+    Parameters
+    ----------
+    lambda_val : float
+        A parameter representing a lambda value.
+    meta_name : str
+        Name of the metadata.
+
+    Attributes
+    ----------
+    N_att : int
+        Number of different categorical attributes of the metadata.
+    dict_codes : dict
+        A dictionary to store codes related to the metadata.
+        Codes are integers ranged from 0 to N_att-1.
+    links : 2D NumPy array
+        Array representing links between nodes and metadata using its codes.
+
+    Methods
+    -------
+    __len__()
+        Returns the number of different categorical attributes.
+    __str__()
+        Returns the name of the metadata.
+
+    Notes
+    -----
+    This class provides a structure to manage metadata associated with nodes.
     """
     def __init__(self, lambda_val, meta_name):
+        """
+        Initialize the MetadataLayer instance.
+
+        Parameters
+        ----------
+        lambda_val : float
+            Parameter that represent the importance of the metadata when the model is inferred.
+        meta_name : str
+            Name of the metadata.
+        """
         self.meta_name = meta_name
         self.lambda_val = lambda_val
 
-    # @property
-    # def N_meta(self):
-    #     return self._N_meta
-    #
-    # @N_meta.setter
-    # def N_meta(self, N_meta):
-    #     self._N_meta = N_meta
-    #     return self._N_meta
-
     @property
     def dict_codes(self):
+        """
+        A dictionary property to store codes related to the metadata.
+
+        Returns
+        -------
+        dict
+            Dictionary containing codes related to the metadata.
+        """
         return self._dict_codes
 
     @dict_codes.setter
@@ -47,9 +83,8 @@ class metadata_layer:
 
         Parameters
         -----------
-        N_att: Int
+        N_att : Int
             Number of different categorical attributes of the metadata
-
         """
         self._N_att = N_att
         return self.N_att
@@ -60,18 +95,6 @@ class metadata_layer:
 
     @links.setter
     def links(self, links):
-        """
-        Adds the links between nodes and metadata and update number of links
-
-        Parameters
-        -----------
-        links: 2D NumPy array
-            Array with (N_meta, N_links)
-
-        Returns
-        -------
-        links: 2D NumPy array with the links between nodes and metadata
-        """
 
         self._links = links
         self.N_links = len(links)
@@ -100,8 +123,6 @@ class exclusive_metadata(metadata_layer):
             Number of membership groups of this metadata
         """
         super().__init__(lambda_val, meta_name)
-        # self.qka = K
-        # print("---",self.qka.shape)
 
     @property
     def qka(self):
@@ -110,8 +131,6 @@ class exclusive_metadata(metadata_layer):
     @qka.setter
     def qka(self, qka):
         self._qka = qka
-
-
 
 
 class inclusive_metadata(metadata_layer):
@@ -131,7 +150,6 @@ class inclusive_metadata(metadata_layer):
         """
         super().__init__(lambda_val, meta_name)
         self.Tau = Tau
-        # self.zeta = self.zeta(Tau)
 
 
     @property
@@ -140,12 +158,16 @@ class inclusive_metadata(metadata_layer):
 
     @q_k_tau.setter
     def q_k_tau(self, q_k_tau):
+        """
+        Setter of the q_k_tau matrix
+        """
         self._q_k_tau =  q_k_tau
 
 
-
-    # @q_k_tau.setter
     def init_q_k_tau(self, K, Tau):
+        """
+        Initialization of the q_k_tau matrix
+        """
         if K <= 0: raise ValueError("Value of K must be positive!")
         if Tau <= 0: raise ValueError("Value of Tau must be positive!")
         self._q_k_tau = np.random.rand(K, self.Tau, self.N_att)
@@ -160,36 +182,38 @@ class nodes_layer:
 
     The rest of the columns of the dataframe can contain information (metadata) from the nodes.
     This metadata can be added as a metadata_layer object considering the network as multipartite network.
-    This metadata can be classify it as exclusive_metadata (if a node only accepts one attribute) and inclusive_metadata (if the node accepts more than one attribute)
+    This metadata can be classified it as exclusive_metadata (if a node only accepts one attribute) and inclusive_metadata (if the node accepts more than one attribute)
 
     See for more information of metadata: metadata_layer, exclusive_metadata and inclusive_metadata.
 
-    These objects can be added into a BiNet (bipartite network) where connection between nodes_layer are considered to infer links and their labels  (see BiNet)
+    These objects can be added into a BiNet (bipartite network) where connections between nodes_layer are considered to infer links and their labels  (see BiNet)
 
     ...
 
     Attributes
     ----------
-    K: int
-        Number of groups.
-    node_type: str
-        Name of the layer. Also is the name of the column where the nodes' name are contained.
-    df: pandas dataFrame
-        DataFrame that contains the nodes information. It contains one column
-        with the nodes' name and the rest are attributes.
-    dict_codes: dict
-        Dictionary with the integer id of the nodes. The key is the nodes' name and the value its id.
-    meta_exclusives: list of metadata_layer
-        List with the metadata exclusives object that contains the metadata that will be used in the MAP algorithm.
-    meta_inclusives: list of metadata_layer
-        List with the metadata inclusives object that contains the metadata that will be used in the MAP algorithm.
-    meta_neighbours_exclusives:
-        List of lists that contains, for each node its exclusives metadata neighbours
-    meta_neighbours_inclusives:
-        List of lists that contains, for each node its inclusives metadata neighbours
-    nodes_observed_inclusive:
-        List of arrays for each metadata with the nodes that has assigned an attribute of the metadata
+    K : int
+        Number of memberships groups for the layer.
 
+    node_type : str
+        Name of the layer. It corresponds with the column where the nodes' name are contained.
+
+    df : pandas DataFrame
+        DataFrame that contains information of the nodes. It contains one column
+        with the nodes' name and the rest are its metadata.
+
+    dict_codes : dict
+        Dictionary with the integer id of the nodes. The key is the nodes' name and the value its id.
+    meta_exclusives : list of metadata_layer
+        List with the metadata exclusives objects that contains the metadata that will be used in the inference.
+    meta_inclusives : list of metadata_layer
+        List with the metadata inclusives object that contains the metadata that will be used in the inference.
+    meta_neighbours_exclusives :
+        List of lists that contains, for each node its exclusives metadata neighbours
+    meta_neighbours_inclusives :
+        List of lists that contains, for each node its inclusives metadata neighbours
+    nodes_observed_inclusive :
+        List of arrays for each metadata with the nodes that has assigned an attribute of the metadata
     """
 
 
@@ -199,15 +223,15 @@ class nodes_layer:
 
         Parameters
         ----------
-        K: int
-            Number of groups
-        nodes_name: str
+        K : int
+            Number of memberships groups for the layer.
+        nodes_name : str
             Name of the nodes column in the nodes_layer class
-        nodes_info: str or pandas DataFrame
+        nodes_info : str or pandas DataFrame
             Is it is a string, it is the directory of the file with the nodes informations
-        separator: str, default \t
+        separator : str, default \t
             Separator if the columns of the file that contains the nodes information
-        dict_codes: dict, default None
+        dict_codes : dict, default None
             Dictionary with the integer id of the nodes. The key is the nodes' name and the value its id.
         """
 
@@ -219,8 +243,6 @@ class nodes_layer:
         elif type(nodes_info) == type(pd.DataFrame()):
             self.df = nodes_info
 
-        # codes = pd.Categorical(self.df[nodes_name]).codes
-        # self.codes = codes
         self._dict_codes = add_codes(self,nodes_name)
 
         if dict_codes != None:
@@ -240,11 +262,6 @@ class nodes_layer:
             self.df.replace({nodes_name+"_id":replacer}, inplace=True)
 
 
-        # self.df = self.df.join(pd.DataFrame(codes, columns=[nodes_name+"_id"]))
-        # print(self.df)
-        # self.df = pd.concat([self.df, pd.DataFrame({nodes_name + "_id": codes})], axis=1, ignore_index=True)
-        # self.df[nodes_name + "_id"] = codes
-        # print(self.df)
         self.nodes_list = self.df[nodes_name].unique()
 
 
@@ -252,7 +269,7 @@ class nodes_layer:
         self.meta_inclusives = []
         self.meta_neighbours_exclusives = []
         self.meta_neighbours_inclusives = []  # all neighbours (connected and not) of inclusive metadata
-        # self.inclusive_linked = []  # metadata inclusive for each node
+
         self.nodes_observed_inclusive = []
         self.nodes_observed_exclusive = []
         self._has_metas = False  #Boolean that tells you if you have metadata initialized with non 0 values of lambda_val
@@ -274,27 +291,39 @@ class nodes_layer:
 
 
     def read_file(self, filename, separator="\t"):
+        """
+        Reads the nodes information from a file and returns it as a pandas DataFrame.
+
+        Parameters
+        ----------
+        filename : str
+            The filename or path to the file containing nodes information.
+
+        separator : str, default: "\t"
+            Separator of the nodes DataFrame. Default is "\t".
+
+        Returns
+        -------
+        DataFrame
+            A pandas DataFrame containing nodes information.
+        """
         return pd.read_csv(filename, sep=separator, engine='python')
 
     @classmethod
     def create_simple_layer(cls, K, nodes_list, nodes_name, dict_codes=None):
         '''
-        Create a nodes_layer object from a list or DataSeries without only with the known nodes
+        Create a nodes_layer object from a list or DataSeries only with the known nodes and without metadata
 
         Parameters
-        -----------
+        ----------
         K: Int
             Number of membership groups of nodes_layer
-
         nodes_list: array-like, DataFrame or DataSeries
             array-like, DataFrame or DataSeries with all the nodes
-
         nodes_name: str
-            Name of the nodes type (users, movies, metobolites...) that are or will be in DataFrame
-
+            Name of the nodes type (users, movies, metabolites...) that are or will be in DataFrame
         dict_codes: dict, None, default: None
             Dictionary where the keys are the names of nodes, and the values are their ids. If None, the program will generate the ids.
-
         '''
         if isinstance(nodes_list, list) or isinstance(nodes_list, np.ndarray):
             new_df = pd.DataFrame({nodes_name: nodes_list})
@@ -354,9 +383,6 @@ class nodes_layer:
 
         if lambda_val>1.e-16:self._has_metas = True
 
-        # encode metadata
-        # codes = pd.Categorical(self.df[meta_name]).codes
-        # self.df = self.df.join(pd.DataFrame(codes, columns=[meta_name + "_id"]))
 
 
         # create metadata object
@@ -385,7 +411,6 @@ class nodes_layer:
 
         em.links = df_dropna[[self.node_type + "_id", meta_name + "_id"]].values
         em.N_att = len(em.dict_codes)
-        # em.qka = em.init_qka(self.K)
 
         #list of arrays of ints where the array number att has all the index positions of links that connects the attribute att
         em.masks_att_list = []
@@ -407,6 +432,8 @@ class nodes_layer:
 
         self.meta_neighbours_exclusives.append(meta_neighbours)
 
+        
+
 
 
     def add_inclusive_metadata(self, lambda_val, meta_name, Tau,*,dict_codes=None, separator="|"):
@@ -426,10 +453,10 @@ class nodes_layer:
 
 
         separator: str, default: "|"
-            Separator that is used to differenciate the differents metadata assigned for each node
+            Separator that is used to differentiate the different metadata assigned for each node
 
-        dict_codes: dict, None, default: None
-            Dictionary where the keys are the names of metadata's type, and the values are the ids. If None, the program will generate the ids.
+        dict_codes: dict, None, default: None Dictionary where the keys are the names of metadata's type,
+        and the values are the ids. If None, the program will generate the ids.
         '''
 
         # create metadata object
@@ -450,7 +477,7 @@ class nodes_layer:
 
 
         # encode metadata
-        meta_neighbours = []#[[int(j) for j in i.split(separator)] for i in df_dropna[meta_name].values]#meta connected with 1
+        meta_neighbours = []#meta connected with 1
 
         for arg in np.argsort(observed_id):
             i = meta_list[arg]
@@ -578,8 +605,8 @@ class nodes_layer:
         Parameters
         -----------
 
-        dict_codes: dict
-            Dictionary where the keys are the names of metadata's type, and the values are the ids. If None, the program will generate the ids.
+        dict_codes: dict Dictionary where the keys are the names of metadata's type, and the values are the ids.
+                    If None, ids will be generated automatically.
         '''
         observed = self.nodes_observed_inclusive[im._meta_code]
         meta_neighbours = []
@@ -654,15 +681,14 @@ class BiNet:
     politicians->bills, patient->microbiome...) and these links can be labeled with information of the
     interaction (ratings, votes...).
 
-    ...
 
     Attributes
     ----------
-    labels_name:
+    labels_name: str
         Name of the labels column
-    N_labels:
-        Number of diferent types labels.
-    labels_array:
+    N_labels: int
+        Number of different types labels.
+    labels_array: ndarray
         Array with all the ids of the labels.
     labels_name:
         List of the names of the diferents labels.
@@ -670,17 +696,52 @@ class BiNet:
         Array with all the ids of the labels used to train the MMSBM
     df:
         Dataframe with the links information, who connected to who and with which label are connected
-    dict_codes:
-        Dictionary with the integer id of the labels. The key is the labels' name and the value its id.
-    nodes_a,nodes_b:
-        nodes_layer objects of the nodes that are part from the bipartite network
-    links:
+    dict_codes: dict
+        Dictionary with the integer ids of the labels. Keys are label names, and values are corresponding ids.
+    nodes_a,nodes_b: nodes_layer
+        nodes_layer objects of the nodes that are part from the bipartite network.
+    links: 2D-array
         2D-array with the links of the nodes that are connected
-    links_training:
+    links_training: 2D-array
         2D-array with the links of the nodes that are connected used to train the MMSBM
 
+    Methods
+    -------
+    __len__()
+        Returns the number of different labels.
+    __str__()
+        Returns the name of the labels column.
 
-    labels_array
+    init_MAP(tol=0.001, training=None, seed=None)
+        Initializes the MAP algorithm to find the most plausible membership parameters of the MMSBM.
+
+    init_MAP_from_directory(training=None, dir=".")
+        Initializes the MAP algorithm using parameters saved in files in a specified directory.
+
+    MAP_step(N_steps=1)
+        Performs N_steps steps of the MAP algorithm.
+
+    get_loglikelihood()
+        Returns the loglikelihood of the current state of the MMSBM.
+
+    get_links_probabilities(links=None)
+        Returns the probability of each link in links.
+
+    get_predicted_links(links=None)
+        Returns the predicted label of each link in links.
+
+    get_accuracy(predicted_labels = None, test_labels = None, Pij = None,links = None, estimator = "max_probability")
+        Returns the accuracy of the predicted labels.
+
+    deep_copying()
+        Returns a deep copy of the BiNet instance.
+
+    converges()
+        Returns True if the MAP algorithm has converged, False otherwise.
+
+    Notes
+    -----
+    This class provides a structure to manage bipartite networks.
 
 
     """
@@ -691,29 +752,31 @@ class BiNet:
 
          Parameters
          -----------
-         links: str, DataFrame
-            DataFrame or directory where the DataFrame is. It should contains the links list between nodes_a and nodes_b and their labels.
+         links: str, pandas DataFrame
+            DataFrame or directory containing the links between nodes_a and nodes_b and their labels.
 
          links_label: str
-             Name of the links column where the labels are
+             Name of the column where the labels are stored in the links DataFrame.
 
          nodes_a: nodes_layer, str, DataFrame, None, default: None
              One of the nodes layer that forms the bipartite network
-             If it is a string, it should contain the directory where the information of the nodes of type a are.
-             If it is a pandas DatFrame, it has to contain the information of the nodes of type a.
-             If None, it a simple nodes_layer will be created from the information from links.
+             - If nodes_layer: Existing instance of the nodes_layer class representing the first layer.
+             - If str or pd.DataFrame: If str, a directory containing the file information about nodes_a.
+             - If pd.DataFrame, DataFrame with nodes_a information.
+             - If None: A simple nodes_layer will be created from the information in links.
 
          nodes_b: nodes_layer, str, DataFrame, None, default: None
              One of the nodes layer that forms the bipartite network
-             If it is a string, it should contain the directory where the information of the nodes of type b are.
-             If it is a pandas DatFrame, it has to contain the information of the nodes of type b.
-             If None, it a simple nodes_layer will be created from the information from links.
+             - If nodes_layer: Existing instance of the nodes_layer class representing the first layer.
+             - If str or pd.DataFrame: If str, a directory containing the file information about nodes_b.
+             - If pd.DataFrame, DataFrame with nodes_b information.
+             - If None: A simple nodes_layer will be created from the information in links.
 
          Ka: int, default: 1
-            Number of membership groups from nodes_a layer
+            Number of membership groups for nodes_a layer
 
          Kb: int, default: 1
-            Number of membership groups from nodes_b layer
+            Number of membership groups for nodes_b layer
 
          nodes_a_name: str, default: nodes_a
             Name of the column where the names of nodes_a are in the links DataFrame and nodes_a DataFrame
@@ -722,18 +785,19 @@ class BiNet:
             Name of the column where the names of nodes_b are in the links DataFrame and nodes_b DataFrame
 
          dict_codes: dict, None, default: None
-            Dictionary where the keys are the names of the labels, and the values are the ids. If None, the program will generate the ids.
+            Dictionary where the keys are the names of the labels, and the values are the ids. If None, new ids will be provided.
 
          dict_codes_a: dict, None, default: None
-            Dictionary where the keys are the names of the nodes from nodes_a and the values are the ids. If None, the program will generate the ids.
+            Dictionary where the keys are the names of the nodes from nodes_a and the values are the ids. If None, new ids will be provided.
 
          dict_codes_b: dict, None, default: None
-            Dictionary where the keys are the names of the nodes from nodes_b and the values are the ids. If None, the program will generate the ids.
+            Dictionary where the keys are the names of the nodes from nodes_b and the values are the ids. If None, new ids will be provided.
 
          separator: str, default: \t
-            Separator of the links DataFrame. Default is \t
+            Separator used to read links DataFrame file. Default is \t
         """
-        if type(links) == type(pd.DataFrame()):
+        #Checking type of links
+        if isinstance(links, pd.DataFrame):
             self.df = links
         elif isinstance(links, str):
             self.df = pd.read_csv(links, sep=separator, engine='python')
@@ -784,12 +848,6 @@ class BiNet:
             self._dict_codes = dict_codes
             self.df.replace({self.labels_name+"_id":replacer}, inplace=True)
 
-        # codes = pd.Categorical(self.df[links_label]).codes
-        # self.df = self.df.join(pd.DataFrame(codes, columns=[links_label + "_id"]))
-
-
-
-
         #Links
         self.df[nodes_a_name + "_id"] = self.df[[nodes_a_name]].replace({nodes_a_name:self.nodes_a.dict_codes})
         self.df[nodes_b_name + "_id"] = self.df[[nodes_b_name]].replace({nodes_b_name:self.nodes_b.dict_codes})
@@ -800,23 +858,10 @@ class BiNet:
         self.links = self.df[[nodes_a_name + "_id", nodes_b_name + "_id"]].values
 
 
-        # #observed nodes in each layer
-        # self.observed_nodes_a = np.unique(self.links[:,0])
-        # self.observed_nodes_b = np.unique(self.links[:,1])
-        #
-        # #non_observed nodes in each layer
-        # self.non_observed_nodes_a = np.array([i for i in range(len(self.nodes_a)) if i not in self.observed_nodes_a])
-        # self.non_observed_nodes_b = np.array([i for i in range(len(self.nodes_b)) if i not in self.observed_nodes_b])
-
 
 
         self.N_labels = max(self.labels_array)+1
 
-        #masks list to know wich links have label r (that is the index of the list)
-        # self.masks_label_list = []
-        # for r in range(self.N_labels):
-        #     mask = np.argwhere(self.labels_array==r)[:,0]
-        #     self.masks_label_list.append(mask)
 
     @property
     def dict_codes(self):
@@ -824,12 +869,52 @@ class BiNet:
 
     @dict_codes.setter
     def dict_codes(self,dc):
+        """
+        Changes the ids (the integer assigned to each label) given the dict_codes.
+        """
         self._dict_codes = dc
         return dc
 
     @classmethod
     def load_BiNet_from_json(cls, json_file, links, links_label,*, nodes_a = None, nodes_b = None, separator="\t"):
+        """
+        Load a BiNet instance from a JSON file containing MMSBM parameters and link information.
 
+        Parameters
+        ----------
+        json_file: str
+            Path to the JSON files containing MMSBM parameters.
+
+        links: array-like
+            Array-like object representing links between nodes in both layers of the BiNet.
+
+        links_label: array-like
+            Array-like object representing the labels corresponding to the links.
+
+        nodes_a: nodes_layer, str, pd.DataFrame, None, default: None
+            - If nodes_layer: Existing instance of the nodes_layer class representing the first layer.
+            - If str or pd.DataFrame: If str, a name for the first layer. If pd.DataFrame, DataFrame with nodes and attributes.
+            - If None: The first layer will be created later.
+
+        nodes_b: nodes_layer, str, pd.DataFrame, None, default: None
+            - If nodes_layer: Existing instance of the nodes_layer class representing the second layer.
+            - If str or pd.DataFrame: If str, a name for the second layer. If pd.DataFrame, DataFrame with nodes and attributes.
+            - If None: The second layer will be created later.
+
+        separator: str, default: "\t"
+            Separator used in the provided JSON file.
+
+        Returns
+        -------
+        BN: BiNet
+            Instance of the BiNet class loaded from the JSON file.
+
+        Notes
+        -----
+        This class method allows loading a BiNet instance from a JSON file, along with links and labels. It constructs both
+        nodes layers' objects with metadata initialized based on the provided information.
+
+        """
         #open json
         with open(json_file, 'r') as f:
             data = json.load(f)
@@ -978,19 +1063,23 @@ class BiNet:
 
         Parameters
         -----------
-        tol: float, default: 0.001
+        tol : float, default: 0.001
             Tolerance of the algorithm when finding the parameters.
 
-        seed: int, None, default: None
+        seed : int, None, default: None
             Seed to generate the matrices. Is initialized using the np.random.RandomState(seed) method.
 
-        training: DataFrame, list, default: None
-            DataFrame with the links that you want to use to train your MMSBM.
-            If it is a list, it must contain the indexes of the links list that will be used to train the MMSBM.
+        training : DataFrame, list, default: None
+            - If DataFrame: DataFrame with the links used to train the MMSBM.
+            - If list or ndarray: List or array containing the indexes of the links list used for training.
+            - If None: Uses self.links and self.labels_array.
 
+        Notes
+        -----
+        This method initializes the MAP algorithm by setting up probability matrices (BiNet.pkl), memberships (BiNet.nodes_a.theta and BiNet.nodes_b.theta), and managing
+        links to train. The tolerance, seed, and training data can be specified to customize the initialization process.
         '''
         # Probability matrices
-        # np.random.RandomState(seed)
 
         self.tol = tol
 
@@ -1008,7 +1097,7 @@ class BiNet:
         elif isinstance(training,list) or isinstance(training,np.ndarray):
             self.links_training = self.links[training]
             self.labels_training = self.labels_array[training]
-        elif training == None:
+        elif training is None:
             self.links_training = self.links
             self.labels_training = self.labels_array
 
@@ -1043,12 +1132,12 @@ class BiNet:
             meta.qka = init_P_matrix(self.nodes_b.K, meta.N_att)
             meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,self.nodes_b.theta,len(self.nodes_b),self.nodes_b.K,meta.links)
 
-        # print("aqui2")
         ## ql_tau, zetes and omegas omega_comp_arrays(omega,p_kl,theta,eta,K,L,links_array,links_ratings):
         for meta in self.nodes_a.meta_inclusives:
             meta.q_k_tau = init_P_matrix(self.nodes_a.K, meta.Tau, 2)
             meta.zeta = init_P_matrix(len(meta), meta.Tau)
             meta.omega = omega_comp_arrays(len(self.nodes_a),len(meta),meta.q_k_tau,self.nodes_a.theta,meta.zeta,self.nodes_a.K,meta.Tau,meta.links,meta.labels)
+
             #neighbours and denominators from meta
             meta.denominators = np.zeros(len(meta))
 
@@ -1124,14 +1213,18 @@ class BiNet:
 
     def init_MAP_from_directory(self,training=None,dir="."):
         '''
-        Initialize the MAP algorithm to get the most plausible membership parameters of the MMSBM using parameters saved in files that are in a directory
+        Initialize the Maximum a Posteriori (MAP) algorithm to obtain the most plausible membership parameters of the
+        Mixed-Membership Stochastic Block Model (MMSBM) using parameters saved in files located in a specified directory.
 
-        Parameters
-        -----------
+            Parameters
+            ----------
+            dir: str, default: "."
+                Directory where the files with the MMSBM parameters will be loaded.
 
-        dir: str, default: "."
-            Directory where the files with the MMSBM parameters will be loaded
-
+            training: pd.DataFrame, list, ndarray, default: None
+                - If pd.DataFrame: DataFrame containing the training links and labels.
+                - If list or ndarray: List or array containing the positions of the links list from self.df attribute.
+                - If None: Uses self.links_training and self.labels_training.
         '''
         na = self.nodes_a
 
@@ -1253,11 +1346,29 @@ class BiNet:
 
     def MAP_step(self,N_steps=1):
         """
+        Performs the N_steps number of steps to update the model parameters.
 
         Parameters
         ----------
         N_steps: int, default: 1
-            Number of MAP steps that will be performed. N_steps = 1 as default.
+            Number of MAP steps to be performed. Default is 1.
+
+        Notes
+        -----
+        This method updates the model parameters using the Maximum a Posteriori (MAP) estimation.
+        The Maximum a Posteriori algorithm is employed for iterative updates.
+
+        During each step, the following updates are performed:
+        - Update of nodes_a parameters (BiNet.nodes_a.theta).
+        - Update of exclusive_meta and inclusive_meta for nodes_a (BiNet.nodes_a.meta.theta).
+        - Update of nodes_b parameters ((BiNet.nodes_b.theta)).
+        - Update of exclusive_meta and inclusive_meta for nodes_b (BiNet.nodes_b.meta.theta)..
+        - Update of link probabilities (BiNet.pkl) and omega (BiNet.omega).
+
+        After each step, a deep copy of the current model parameters is stored for convergence tracking.
+
+        It is recommended to perform multiple MAP steps to refine the model parameters.
+
         """
 
         #getting copies from the actual parameters
@@ -1325,22 +1436,21 @@ class BiNet:
 
     def get_links_probabilities(self, links = None):
         """
-        Computes the links labels probabilities trained BiNet for a set of links.
+        Computes the label probabilities for links in the trained BiNet.
 
         Parameters
         ----------
-        links: ndarray of 1 or 2 dimensions, pandas DataFrame, default:None
-            Array with the links that you want to get probabilites that are connected for each label
-            -If is a 2d-array, the first column must contain the ids from nodes_a layer and the second
-            column must contains the ids from nodes_b layer.
-            -If it is a 1d-array, it must contain the positions of the links list from self.df attribute
-            -If it is a pandas DataFrame, it must contains, at least, two columns with the names of the nodes layers.
-            -If it is None, self.links_training will be used.
+        links : ndarray or DataFrame, optional, default: None
+            Array or DataFrame with links for which probabilities are computed.
+            - If 2D array, the first column should contain node IDs from nodes_a layer, and the second column from nodes_b layer.
+            - If 1D array, it should contain positions of links in self.df attribute.
+            - If DataFrame, it should have at least two columns with names of the nodes layers.
+            - If None, self.links_training will be used.
 
         Returns
         -------
-        Pij_r: ndarray of shape (len(links),self.N_labels)
-            Pij_r[l,r] is the probability that the link l has a label r
+        Pij_r : ndarray, shape (len(links), self.N_labels)
+            Pij_r[l, r] is the probability that link l has label r.
         """
         if links is None:
             Pij = total_p_comp_test(self.nodes_a.theta,self.nodes_b.theta,self.pkl,self.links_training)
@@ -1372,7 +1482,8 @@ class BiNet:
 
     def get_predicted_labels(self, to_return = "df", Pij = None, links = None, estimator = "max_probability"):
         """
-        Computes the predicted labels of the model given the MMSBM parameters. They can be measured by different estimators:
+
+        Computes the predicted labels of the model based on the MMSBM parameters, using different estimators. They can be measured by different estimators:
             max_probability: The predicted label will be the most plausible label
             mean: The predicted label will be the mean
 
@@ -1380,30 +1491,37 @@ class BiNet:
         ----------
         to_return: {"df","ids", "both"}, default: df
             Option to choose how the predicted labels will be returned.
-             -df: A dataframe with the columns being the nodes from both layers and an extra column called predicted_+self.label_name
-             -ids: A ndarray of ints with the ids of the predicted labels
-             -both: It will return the df and the ndarray in this order.
+             -"df": Returns a DataFrame with columns for nodes from both layers and an additional column called "Predicted + self.label_name".
+             -"ids": Returns a ndarray of ints with the ids of the predicted labels.
+             -"both": Returns both the DataFrame and the ndarray with the ids in this order.
 
         links: ndarray of 1 or 2 dimensions, pandas DataFrame, default: None
-            Array with the links that you want to get probabilites that are connected for each label.
-            -If it is a 2d-array, the first column must contains the ids from nodes_a layer and the second
-            column must contains the ids from nodes_b layer.
-            -If it is a 1d-array, it must contains the positions of the links list from self.df attribute
-            -If it is a pandas dataFrame, it must contains at less two columns with the name of the nodes layer.
-            -If it is None, self.links_training will be used.
+            Array with links for which label probabilities are computed.
+            -If a 2d-array, the first column must contain the ids from nodes_a layer and the second
+             column must contain the ids from nodes_b layers.
+            -If a 1d-array, it must contain the positions of the links list from self.df attribute
+            -If a pandas DataFrame, it must contain at least two columns with the name of the nodes' layers
+             and a column with the same name as the labels column from BiNet.df.
+            -If None, self.links_training will be used.
 
         estimator: {"max_probability","average"}, default: max_probability
-            Estimator used to get the predicted labels:
-            -max_probability: The selected label is the most plausible label
-            -mean: The selected label is mean label (sum [Pij(l)*l])
+            Estimator used to get predicted labels:
+            - "max_probability": Selects the most plausible label.
+            - "average": Selects the average label (sum [Pij(l) * l]).
+
 
         Returns
         -------
         labels_id: ndarray
-            Predicted labels id
+            Predicted labels id.
 
         labels_df: pandas DataFrame
-            Dataframe whose columns are nodes_a, nodes_b and the prediced labels
+            DataFrame whose columns are nodes_a, nodes_b and the predicted labels
+
+
+        Notes
+        -----
+        If Pij is provided, it will use the given probabilities; otherwise, it computes probabilities using self.get_links_probabilities(links).
         """
         if isinstance(Pij,np.ndarray):
             if estimator=="max_probability":
@@ -1464,33 +1582,32 @@ class BiNet:
         Parameters
         ----------
         predicted_labels: array-like, default:None.
-            Array-like with the predicted labels ids given by the MMSBM
+            Array-like with the predicted labels ids given by the MMSBM. If None, predictions will be generated using
+        the specified links and estimator.
 
         test_labels: array-like, default:None.
-            List or array with the observed labels
-            If it is None, labels from self.labels_array are taken given pos_test_labels
+            List or array with the observed labels. If None, labels from self.labels_array are taken given pos_test_labels
 
         links: ndarray of 1 or 2 dimensions, pandas DataFrame, default: None
-            Array with the links that you want to get probabilites that are connected for each label.
-            -If it is a 2d-array, the first column must contain the ids from nodes_a layer and the second
-             column must contains the ids from nodes_b layers.
-            -If it is a 1d-array, it must contains the positions of the links list from self.df attribute
-            -If it is a pandas dataFrame, it must contains at less two columns with the name of the nodes layer
+            Array with links for which label probabilities are computed.
+            -If a 2d-array, the first column must contain the ids from nodes_a layer and the second
+             column must contain the ids from nodes_b layers.
+            -If a 1d-array, it must contain the positions of the links list from self.df attribute
+            -If a pandas DataFrame, it must contain at least two columns with the name of the nodes' layers
              and a column with the same name as the labels column from BiNet.df.
-            -If it is None, self.links_training will be used.
+            -If None, self.links_training will be used.
 
 
         estimator: {"max_probability","mean"}, default: max_probability
             Estimator used to get the predicted labels:
-            -max_probability: The selected label is the most plausible label
-            -mean: The selected label is mean label (sum [Pij(l)*l])
+            -max_probability: Selects the most plausible label
+            -mean: Selects the mean label (sum [Pij(l)*l])
 
         Returns
         -------
         accuracy: float
-            Ratio of well predicted labels
+            Ratio of correctly predicted labels to the total number of predicted labels.
         """
-
         if predicted_labels is None:
             predicted_labels = self.get_predicted_labels(to_return = "ids", links = links, Pij = Pij, estimator = estimator)
 
@@ -1511,13 +1628,32 @@ class BiNet:
                                      -Links position of the BiNet.links_array.""")
             elif links is None:
                 test_labels = self.labels_training
-        # print(predicted_labels.shape,test_labels.shape,predicted_labels==test_labels,predicted_labels,test_labels)
         return (predicted_labels==test_labels).sum()/len(predicted_labels)
 
     def deep_copying(self):
         """
-        It makes a deep copy of all the parameters from the MAP algorithm
+        Performs a deep copy of all parameters in the MAP algorithm.
+
+        Notes
+        -----
+        This method creates deep copies of various parameters to store their current states for future reference and convergence checking.
+
+        - Link Parameters:
+            - pkl_old: Deep copy of the link probabilities (self.pkl).
+            - omega_old: Deep copy of omega (self.omega).
+
+        - Metadata parameters (for each layer):
+            - theta_old: Deep copy of the layer's theta parameters (self.theta).
+            - Inclusive metadata:
+                - zeta_old: Deep copy of zeta (meta.zeta).
+                - q_k_tau_old: Deep copy of q_k_tau (meta.q_k_tau).
+                - omega_old: Deep copy of omega (meta.omega).
+            - Exclusive metadata:
+                - qka_old: Deep copy of qka (meta.qka).
+                - omega_old: Deep copy of omega (meta.omega).
+
         """
+
         na = self.nodes_a
 
         nb = self.nodes_b
@@ -1543,7 +1679,23 @@ class BiNet:
 
     def converges(self):
         """
-        Returns True if the parameters have converged or False if they haven't converged
+        Checks if the parameters have converged during the MAP procedure.
+
+        Returns
+        -------
+        bool
+            True if the parameters have converged, False otherwise.
+
+        Notes
+        -----
+        Convergence is determined based on the tolerance (self.tol) set for the model.
+
+        - Meta Convergence:
+            - Checks convergence for each layer's theta and metadata parameters.
+            - Metadata parameters include zeta, q_k_tau, and omega for both inclusive and exclusive metadata.
+
+        - Links Convergence:
+            - Checks convergence for pkl (link probabilities) and omega parameters.
         """
         na = self.nodes_a
 
