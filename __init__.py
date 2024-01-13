@@ -209,9 +209,9 @@ class nodes_layer:
     meta_inclusives : list of metadata_layer
         List with the metadata inclusives object that contains the metadata that will be used in the inference.
     meta_neighbours_exclusives :
-        List of lists that contains, for each node its exclusives metadata neighbours
+        Dictionaries of lists that contains, for each node its exclusives metadata neighbours.
     meta_neighbours_inclusives :
-        List of lists that contains, for each node its inclusives metadata neighbours
+        Dictionaries of lists that contains, for each node its inclusives metadata neighbours.
     nodes_observed_inclusive :
         List of arrays for each metadata with the nodes that has assigned an attribute of the metadata
     """
@@ -265,13 +265,13 @@ class nodes_layer:
         self.nodes_list = self.df[nodes_name].unique()
 
 
-        self.meta_exclusives = []
-        self.meta_inclusives = []
-        self.meta_neighbours_exclusives = []
-        self.meta_neighbours_inclusives = []  # all neighbours (connected and not) of inclusive metadata
+        self.meta_exclusives = {}
+        self.meta_inclusives = {}
+        self.meta_neighbours_exclusives = {}
+        self.meta_neighbours_inclusives = {}  # all neighbours (connected and not) of inclusive metadata
 
-        self.nodes_observed_inclusive = []
-        self.nodes_observed_exclusive = []
+        self.nodes_observed_inclusive = {}
+        self.nodes_observed_exclusive = {}
         self._has_metas = False  #Boolean that tells you if you have metadata initialized with non 0 values of lambda_val
 
         self.N_nodes = len(self.nodes_list)
@@ -420,8 +420,8 @@ class nodes_layer:
 
 
         # update meta related nodes attributes
-        self.meta_exclusives.append(em)
-        self.nodes_observed_exclusive.append(observed)
+        self.meta_exclusives[meta_name] = em
+        self.nodes_observed_exclusive[str(em)] = observed
         self.N_meta_exclusive += 1
         self.N_meta += 1
 
@@ -430,9 +430,12 @@ class nodes_layer:
         for n in observed:
             meta_neighbours[n] = self.df[self.df[self.node_type + "_id" ]== n][meta_name + "_id"]#.values
 
-        self.meta_neighbours_exclusives.append(meta_neighbours)
+        self.meta_neighbours_exclusives[meta_name] = meta_neighbours
 
-        
+        return em
+
+
+
 
 
 
@@ -552,14 +555,16 @@ class nodes_layer:
         # self.df = self.df.join(pd.DataFrame(codes, columns=[meta_name+"_id"]))
         # self.inclusive_linked.append([[int(j) for j in i.split(separator)] for i in df_dropna [meta_name+"_id"].values])
 
-        self.nodes_observed_inclusive.append(observed_id)
+        self.nodes_observed_inclusive[str(im)] = observed_id
 
         # update meta related nodes attributes
-        self.meta_inclusives.append(im)
+        self.meta_inclusives[str(im)] = im
         self.N_meta_inclusive += 1
         self.N_meta += 1
 
-        self.meta_neighbours_inclusives.append(meta_neighbours)
+        self.meta_neighbours_inclusives[str(im)] = meta_neighbours
+
+        return im
 
 
     def update_exclusives_id(self, em, dict_codes):
@@ -594,9 +599,8 @@ class nodes_layer:
         for n in range(self.N_nodes):
             meta_neighbours[n] = self.df[self.df[self.node_type + "_id" ]== n][em.meta_name + "_id"]#.values
 
-        for i,meta in enumerate(self.meta_exclusives):
-            if meta==em:
-                self.meta_neighbours_exclusives[i] = meta_neighbours
+        self.meta_neighbours_exclusives[str(em)] = meta_neighbours
+
 
     def update_inclusives_id(self, im, dict_codes):
         '''
@@ -608,7 +612,7 @@ class nodes_layer:
         dict_codes: dict Dictionary where the keys are the names of metadata's type, and the values are the ids.
                     If None, ids will be generated automatically.
         '''
-        observed = self.nodes_observed_inclusive[im._meta_code]
+        observed = self.nodes_observed_inclusive[str(im)]
         meta_neighbours = []
 
 
@@ -619,7 +623,7 @@ class nodes_layer:
 
 
         #New ids into the neigbours list
-        for neig in self.meta_neighbours_inclusives[im._meta_code]:
+        for neig in self.meta_neighbours_inclusives[str(im)]:
             N = []
             for ids in neig:
                 N.append(replacer[ids])
@@ -673,7 +677,7 @@ class nodes_layer:
 
 
         # update meta related nodes attributes
-        self.meta_neighbours_inclusives[im._meta_code] = [[m for m in L] for L in meta_neighbours]
+        self.meta_neighbours_inclusives[str(im)] = [[m for m in L] for L in meta_neighbours]
 
 class BiNet:
     """
