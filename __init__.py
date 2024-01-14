@@ -289,6 +289,65 @@ class nodes_layer:
         self._dict_codes = dc
         return dc
 
+    def __getitem__(self, metadata_name):
+        """
+        Returns the metadata object with the name metadata_name
+
+        Parameters
+        ----------
+        metadata_name : str
+            Name of the metadata
+
+        Returns
+        -------
+        metadata_layer
+            metadata_layer object with the name metadata_name
+        """
+        if metadata_name in self.meta_exclusives:
+            return self.meta_exclusives[metadata_name]
+        elif metadata_name in self.meta_inclusives:
+            return self.meta_inclusives[metadata_name]
+        else:
+            raise ValueError(f"Metadata {metadata_name} name not found")
+
+    def __setitem__(self, metadata_name, metadata):
+        """
+        Sets the metadata object with the name metadata_name
+
+        Parameters
+        ----------
+        metadata_name : str
+            Name of the metadata
+
+        metadata : metadata_layer
+            metadata_layer object with the name metadata_name
+        """
+        if isinstance(metadata, exclusive_metadata):
+            self.meta_exclusives[metadata_name] = metadata
+        elif isinstance(metadata, inclusive_metadata):
+            self.meta_inclusives[metadata_name] = metadata
+        else:
+            raise ValueError(f"Metadata {metadata_name} is not a metadata_layer object")
+
+    def __delitem__(self, metadata_name):
+        """
+        Deletes the metadata object with the name metadata_name
+
+        Parameters
+        ----------
+        metadata_name : str
+            Name of the metadata
+        """
+        if metadata_name in self.meta_exclusives:
+            del self.meta_exclusives[metadata_name]
+            self.N_meta_exclusive -= 1
+            self.N_meta -= 1
+        elif metadata_name in self.meta_inclusives:
+            del self.meta_inclusives[metadata_name]
+            self.N_meta_inclusive -= 1
+            self.N_meta -= 1
+        else:
+            raise ValueError(f"Metadata {metadata_name} name not found")
 
     def read_file(self, filename, separator="\t"):
         """
@@ -1058,6 +1117,45 @@ class BiNet:
 
         return BN
 
+    def __getitem__(self, nodes_type):
+        """
+        Returns the nodes_layer object of the specified type.
+
+        Parameters
+        ----------
+        nodes_type: str
+            Name of the nodes_layer object to return.
+
+        Returns
+        -------
+        nodes_layer
+            The nodes_layer object of the specified type.
+        """
+        if nodes_type == str(self.nodes_a):
+            return self.nodes_a
+        elif nodes_type == str(self.nodes_b):
+            return self.nodes_b
+        else:
+            raise ValueError("Nodes type not found")
+
+    def __setitem__(self, nodes_type, nodes_layer):
+        """
+        Sets the nodes_layer object of the specified type.
+
+        Parameters
+        ----------
+        nodes_type: str
+            Name of the nodes_layer object to set.
+
+        nodes_layer: nodes_layer
+            The nodes_layer object to set.
+        """
+        if nodes_type == str(self.nodes_a):
+            self.nodes_a = nodes_layer
+        elif nodes_type == str(self.nodes_b):
+            self.nodes_b = nodes_layer
+        else:
+            raise ValueError("Nodes type not found")
 
 
     #MAP ALGORITHM
