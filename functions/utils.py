@@ -83,7 +83,7 @@ def save_MMSBM_parameters(BiNet,dir=".",matrix_format="npy",BiNet_json=False):
         Format that the matrices parameters will be saved. It can be, npy or npz.
 
     BiNet_json: boolean, default: False
-        If it is True, a the information of the BiNet class will be saved into a json.
+        If it is True, the information of the BiNet class will be saved into a json.
 
     """
     na = BiNet.nodes_a

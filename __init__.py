@@ -1487,9 +1487,9 @@ class BiNet:
 
         for step in range(N_steps):
 
-            for layer in [na,nb]:
+            for layer,layer_str in [(na,"a"),(nb,"b")]:
                 #layer update
-                layer.theta = theta_comp_arrays_multilayer(self)
+                layer.theta = theta_comp_arrays_multilayer(self,layer_str)
 
                 ##nodes_a exclusive_meta update
                 for i, meta in enumerate(layer.meta_exclusives.values()):
