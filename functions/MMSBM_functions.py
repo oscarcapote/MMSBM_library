@@ -58,7 +58,7 @@ def theta_comp_arrays_multilayer(BiNet,layer = "a"):
     ##Meta exclusive
     N_metas = na.N_meta_exclusive
 
-    for meta in na.meta_exclusives:
+    for k, meta in enumerate(na.meta_exclusives.values()):
         new_theta += sum_omega_ax_lambda(meta.omega,1,meta.lambda_val)
 #         new_theta += meta.omega.sum(axis=1)*meta.lambda_val
 
@@ -66,7 +66,7 @@ def theta_comp_arrays_multilayer(BiNet,layer = "a"):
     ##Meta inclusive
     N_metas = na.N_meta_inclusive
 
-    for meta in na.meta_inclusives:
+    for k, meta in enumerate(na.meta_inclusives.values()):
         new_theta += sum_omega_13_lambda(meta.omega,meta.lambda_val)#meta.omega.sum(axis=1).sum(axis=2)*meta.lambda_val
         # new_theta += meta.omega.sum(axis=1).sum(axis=2)*meta.lambda_val
 
@@ -95,6 +95,19 @@ def theta_comp_array(N_nodes,K,omega,denominators,links,masks_list):
 def q_ka_comp_arrays(K,N_att,omega,links,masks_att_list):
     """
     It computes the probability matrix between nodes in group k and attribute a
+
+    Parameters
+    ----------
+    K : int
+        Number of groups
+    N_att : int
+        Number of attributes
+    omega : np.array
+        The omega matrix of the BiNet
+    links : np.array
+        The links of the BiNet
+    masks_att_list : list
+        A list of masks for each attribute
     """
 
     qka2 = np.zeros((K,N_att))
@@ -102,7 +115,7 @@ def q_ka_comp_arrays(K,N_att,omega,links,masks_att_list):
     for att,mask in enumerate(masks_att_list):
         qka2[:,att] += unfolded_q[mask,:].sum(axis=0)
     suma = np.sum(qka2,axis =1)
-    qka2  /=suma[:,np.newaxis]
+    qka2 /=suma[:,np.newaxis]
     return qka2
 
 def p_kl_comp_arrays(Ka,Kb,N_labels, links, omega, mask_list):

@@ -928,6 +928,10 @@ class BiNet:
 
     @property
     def dict_codes(self):
+        """
+        Dictionary with the integer ids of the labels. Keys are label names, and values are corresponding ids.
+        The ids go from 0 to N_labels-1.
+        """
         return self._dict_codes
 
     @dict_codes.setter
@@ -1136,7 +1140,7 @@ class BiNet:
         elif nodes_type == str(self.nodes_b):
             return self.nodes_b
         else:
-            raise ValueError("Nodes type not found")
+            raise ValueError(f"Nodes type {nodes_type} not found")
 
     def __setitem__(self, nodes_type, nodes_layer):
         """
@@ -1194,7 +1198,7 @@ class BiNet:
 
         # Links to train management
         if isinstance(training,pd.DataFrame):
-            self.links_training = training[str(self.nodes_a)+"_id",str(self.nodes_b)+"_id"].values
+            self.links_training = training[[str(self.nodes_a)+"_id",str(self.nodes_b)+"_id"]].values
             self.labels_training = training[self.labels_name+"_id"].values
         elif isinstance(training,list) or isinstance(training,np.ndarray):
             self.links_training = self.links[training]
@@ -1226,16 +1230,16 @@ class BiNet:
 
         #Metadata
         ## qka and omegas
-        for meta in self.nodes_a.meta_exclusives:
+        for meta_name,meta in self.nodes_a.meta_exclusives.items():
             meta.qka = init_P_matrix(self.nodes_a.K, meta.N_att)
             meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,self.nodes_a.theta,len(self.nodes_a),self.nodes_a.K,meta.links)
 
-        for meta in self.nodes_b.meta_exclusives:
+        for meta_name,meta in self.nodes_b.meta_exclusives.items():
             meta.qka = init_P_matrix(self.nodes_b.K, meta.N_att)
             meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,self.nodes_b.theta,len(self.nodes_b),self.nodes_b.K,meta.links)
 
         ## ql_tau, zetes and omegas omega_comp_arrays(omega,p_kl,theta,eta,K,L,links_array,links_ratings):
-        for meta in self.nodes_a.meta_inclusives:
+        for meta_name,meta in self.nodes_a.meta_inclusives.items():
             meta.q_k_tau = init_P_matrix(self.nodes_a.K, meta.Tau, 2)
             meta.zeta = init_P_matrix(len(meta), meta.Tau)
             meta.omega = omega_comp_arrays(len(self.nodes_a),len(meta),meta.q_k_tau,self.nodes_a.theta,meta.zeta,self.nodes_a.K,meta.Tau,meta.links,meta.labels)
@@ -1249,7 +1253,7 @@ class BiNet:
 
 
 
-        for meta in self.nodes_b.meta_inclusives:
+        for meta_name,meta in self.nodes_b.meta_inclusives.items():
             meta.q_k_tau = init_P_matrix(self.nodes_b.K, meta.Tau, 2)
             meta.zeta = init_P_matrix(len(meta), meta.Tau)
             meta.omega = omega_comp_arrays(len(self.nodes_b),len(meta),meta.q_k_tau,self.nodes_b.theta,meta.zeta,self.nodes_b.K,meta.Tau,meta.links,meta.labels)
@@ -1259,6 +1263,7 @@ class BiNet:
 
             for m in range(len(meta)):
                 meta.denominators[m] += len(meta.neighbours_meta)
+            meta.denominators = meta.denominators[:,np.newaxis]
 
 
         #creating arrays with the denominator (that are constants) of each node in both layers and em layers
@@ -1273,13 +1278,13 @@ class BiNet:
             self.nodes_a.denominators[node] += len(self.neighbours_nodes_a[-1])
 
         #neighbours in meta exclusives
-        for i, meta in enumerate(self.nodes_a.meta_exclusives):
+        for i, meta in enumerate(self.nodes_a.meta_exclusives.values()):
             for node in meta.links[:,0]:
                 self.nodes_a.denominators[node] += meta.lambda_val
 
         #neighbours in meta inclusives
         for node in range(len(self.nodes_a)):
-            for i, meta in enumerate(self.nodes_a.meta_inclusives):
+            for i, meta in enumerate(self.nodes_a.meta_inclusives.values()):
                 self.nodes_a.denominators[node] += meta.lambda_val*len(meta.links[meta.links[:,0]==node,:])
 
 
@@ -1298,13 +1303,13 @@ class BiNet:
             self.nodes_b.denominators[node] += len(self.neighbours_nodes_b[-1])
 
         #neighbours in meta exclusives
-        for i, meta in enumerate(self.nodes_b.meta_exclusives):
+        for i, meta in enumerate(self.nodes_b.meta_exclusives.values()):
             for node in meta.links[:,0]:
                 self.nodes_b.denominators[node] += meta.lambda_val
 
         #neighbours in meta inclusives
         for node in range(len(self.nodes_b)):
-            for i, meta in enumerate(self.nodes_b.meta_inclusives):
+            for i, meta in enumerate(self.nodes_b.meta_inclusives.values()):
                 self.nodes_b.denominators[node] += meta.lambda_val*len(meta.links[meta.links[:,0]==node,:])
 
             #neighbours in meta inclusives
@@ -1337,7 +1342,7 @@ class BiNet:
 
         # Links to train management
         if isinstance(training,pd.DataFrame):
-            self.links_training = training[str(self.nodes_a)+"_id",str(self.nodes_b)+"_id"].values
+            self.links_training = training[[str(self.nodes_a)+"_id",str(self.nodes_b)+"_id]"]].values
             self.labels_training = training[self.labels_name+"_id"].values
         elif isinstance(training,list) or isinstance(training,np.ndarray):
             self.links_training = self.links[training]
@@ -1403,13 +1408,13 @@ class BiNet:
             na.denominators[node] += len(self.neighbours_nodes_a[-1])
 
         #neighbours in meta exclusives
-        for i, meta in enumerate(na.meta_exclusives):
+        for i, meta in enumerate(na.meta_exclusives.values()):
             for node in meta.links[:,0]:
                 na.denominators[node] += meta.lambda_val
 
         #neighbours in meta inclusives
         for node in range(len(na)):
-            for i, meta in enumerate(na.meta_inclusives):
+            for i, meta in enumerate(na.meta_inclusives.values()):
                 na.denominators[node] += meta.lambda_val*len(meta.links[meta.links[:,0]==node,:])
 
 
@@ -1432,13 +1437,13 @@ class BiNet:
             nb.denominators[node] += len(self.neighbours_nodes_b[-1])
 
         #neighbours in meta exclusives
-        for i, meta in enumerate(nb.meta_exclusives):
+        for i, meta in enumerate(nb.meta_exclusives.values()):
             for node in meta.links[:,0]:
                 nb.denominators[node] += meta.lambda_val
 
         #neighbours in meta inclusives
         for node in range(len(nb)):
-            for i, meta in enumerate(nb.meta_inclusives):
+            for i, meta in enumerate(nb.meta_inclusives.values()):
                 nb.denominators[node] += meta.lambda_val*len(meta.links[meta.links[:,0]==node,:])
 
             #neighbours in meta inclusives
@@ -1481,36 +1486,25 @@ class BiNet:
         nb = self.nodes_b
 
         for step in range(N_steps):
-            #nodes_a update
-            na.theta = theta_comp_arrays_multilayer(self)
 
-            ##nodes_a exclusive_meta update
-            for i, meta in enumerate(na.meta_exclusives):
-                meta.qka = q_ka_comp_arrays(na.K,meta.N_att,meta.omega,meta.links,meta.masks_att_list)
-                meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,self.nodes_a.theta,len(self.nodes_a),self.nodes_a.K,meta.links)
+            for layer in [na,nb]:
+                #layer update
+                layer.theta = theta_comp_arrays_multilayer(self)
 
-
-            ##nodes_a inclusive_meta update
-            for i, meta in enumerate(na.meta_inclusives):
-                meta.zeta = theta_comp_array(meta.N_att,meta.Tau,meta.omega,meta.denominators,meta.links,meta.masks_att_list)#(meta.N_att,meta.Tau,meta.omega,meta.links,meta.masks_att_list)
-                meta.q_k_tau = p_kl_comp_arrays(na.K,meta.Tau,2,meta.links,meta.omega,meta.masks_label_list)
-                meta.omega = omega_comp_arrays(len(self.nodes_a),len(meta),meta.q_k_tau,self.nodes_a.theta,meta.zeta,self.nodes_a.K,meta.Tau,meta.links,meta.labels)
+                ##nodes_a exclusive_meta update
+                for i, meta in enumerate(layer.meta_exclusives.values()):
+                    meta.qka = q_ka_comp_arrays(layer.K,meta.N_att,meta.omega,meta.links,meta.masks_att_list)
+                    meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,layer.theta,len(layer),layer.K,meta.links)
 
 
+                ##nodes_a inclusive_meta update
+                for i, meta in enumerate(layer.meta_inclusives.values()):
+                    meta.zeta = theta_comp_array(meta.N_att,meta.Tau,meta.omega,meta.denominators,meta.links,meta.masks_att_list)#(meta.N_att,meta.Tau,meta.omega,meta.links,meta.masks_att_list)
+                    meta.q_k_tau = p_kl_comp_arrays(layer.K,meta.Tau,2,meta.links,meta.omega,meta.masks_label_list)
+                    meta.omega = omega_comp_arrays(len(layer),len(meta),meta.q_k_tau,layer.theta,meta.zeta,layer.K,meta.Tau,meta.links,meta.labels)
 
-            #nodes_b update
-            nb.theta = theta_comp_arrays_multilayer(self,"b")
 
-            ##nodes_b exclusive_meta update
-            for i, meta in enumerate(nb.meta_exclusives):
-                meta.qka = q_ka_comp_arrays(meta.omega,nb.K,meta.links,meta.N_att)
-                meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,nb.theta,len(nb),nb.K,meta.links)
 
-            ##nodes_b inclusive_meta update
-            for i, meta in enumerate(nb.meta_inclusives):
-                meta.zeta = theta_comp_array(meta.N_att,meta.Tau,meta.omega,meta.denominators,meta.links,meta.masks_att_list)#(meta.N_att,meta.Tau,meta.omega,meta.links,meta.masks_att_list)
-                meta.q_k_tau = p_kl_comp_arrays(nb.K,meta.Tau,2,meta.links,meta.omega,meta.masks_label_list)
-                meta.omega = omega_comp_arrays(len(self.nodes_b),len(meta),meta.q_k_tau,self.nodes_b.theta,meta.zeta,self.nodes_b.K,meta.Tau,meta.links,meta.labels)
 
             self.pkl = p_kl_comp_arrays(na.K,nb.K,self.N_labels, self.links_training, self.omega, self.masks_label_list)
             self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links_training,self.labels_training)
@@ -1530,10 +1524,10 @@ class BiNet:
         #log-like from the metadata networks
         for layer in [na,nb]:
             #log-like inclusives meta
-            for i, meta in enumerate(layer.meta_inclusives):
+            for i, meta in enumerate(layer.meta_inclusives.values()):
                 meta.log_likelihood = log_like_comp(layer.theta,meta.zeta,meta.q_k_tau,meta.links,meta.labels)
             #log-like exclusives meta
-            for i, meta in enumerate(layer.meta_exclusives):
+            for i, meta in enumerate(layer.meta_exclusives.values()):
                 meta.log_likelihood = log_like_comp_exclusive(layer.theta,meta.qka,meta.links)
 
     def get_links_probabilities(self, links = None):
@@ -1582,21 +1576,15 @@ class BiNet:
         return Pij
 
 
-    def get_predicted_labels(self, to_return = "df", Pij = None, links = None, estimator = "max_probability"):
+    def get_predicted_labels(self, links = None, Pij = None,  estimator = "max_probability", to_return = "df"):
         """
 
         Computes the predicted labels of the model based on the MMSBM parameters, using different estimators. They can be measured by different estimators:
-            max_probability: The predicted label will be the most plausible label
-            mean: The predicted label will be the mean
+            - max_probability: The predicted label will be the most plausible label
+            - mean: The predicted label will be the mean
 
         Parameters
         ----------
-        to_return: {"df","ids", "both"}, default: df
-            Option to choose how the predicted labels will be returned.
-             -"df": Returns a DataFrame with columns for nodes from both layers and an additional column called "Predicted + self.label_name".
-             -"ids": Returns a ndarray of ints with the ids of the predicted labels.
-             -"both": Returns both the DataFrame and the ndarray with the ids in this order.
-
         links: ndarray of 1 or 2 dimensions, pandas DataFrame, default: None
             Array with links for which label probabilities are computed.
             -If a 2d-array, the first column must contain the ids from nodes_a layer and the second
@@ -1606,10 +1594,19 @@ class BiNet:
              and a column with the same name as the labels column from BiNet.df.
             -If None, self.links_training will be used.
 
+        Pij: ndarray, default: None
+            Array with the probabilities of the links to have each label. If None, it will compute the probabilities using self.get_links_probabilities(links).
+
         estimator: {"max_probability","average"}, default: max_probability
             Estimator used to get predicted labels:
             - "max_probability": Selects the most plausible label.
             - "average": Selects the average label (sum [Pij(l) * l]).
+
+        to_return: {"df","ids", "both"}, default: df
+            Option to choose how the predicted labels will be returned.
+             -"df": Returns a DataFrame with columns for nodes from both layers and an additional column called "Predicted + self.label_name".
+             -"ids": Returns a ndarray of ints with the ids of the predicted labels.
+             -"both": Returns both the DataFrame and the ndarray with the ids in this order.
 
 
         Returns
@@ -1623,7 +1620,7 @@ class BiNet:
 
         Notes
         -----
-        If Pij is provided, it will use the given probabilities; otherwise, it computes probabilities using self.get_links_probabilities(links).
+        If Pij is provided, it will use the given probabilities; otherwise, it will compute probabilities using self.get_links_probabilities(links).
         """
         if isinstance(Pij,np.ndarray):
             if estimator=="max_probability":
@@ -1711,7 +1708,7 @@ class BiNet:
             Ratio of correctly predicted labels to the total number of predicted labels.
         """
         if predicted_labels is None:
-            predicted_labels = self.get_predicted_labels(to_return = "ids", links = links, Pij = Pij, estimator = estimator)
+            predicted_labels = self.get_predicted_labels(links=links, Pij=Pij, estimator=estimator, to_return="ids")
 
         if test_labels is None:
             if isinstance(links,pd.DataFrame):
@@ -1769,13 +1766,13 @@ class BiNet:
         for layer in [na,nb]:
             layer.theta_old = layer.theta.copy()
             ##inclusive_meta copies
-            for i, meta in enumerate(layer.meta_inclusives):
+            for i, meta in enumerate(layer.meta_inclusives.values()):
                 meta.zeta_old = meta.zeta.copy()
                 meta.q_k_tau_old = meta.q_k_tau.copy()
                 meta.omega_old = meta.omega.copy()
 
             ##exclusive_meta copies
-            for i, meta in enumerate(layer.meta_exclusives):
+            for i, meta in enumerate(layer.meta_exclusives.values()):
                 meta.qka_old = meta.qka.copy()
                 meta.omega_old = meta.omega.copy()
 
@@ -1810,13 +1807,13 @@ class BiNet:
         for layer in [na,nb]:
             if not finished(layer.theta_old,layer.theta,tol): return False
             ##inclusive_meta convergence
-            for i, meta in enumerate(layer.meta_inclusives):
+            for i, meta in enumerate(layer.meta_inclusives.values()):
                 if not finished(meta.zeta_old,meta.zeta,tol): return False
                 if not finished(meta.q_k_tau_old,meta.q_k_tau,tol): return False
                 if not finished(meta.omega_old,meta.omega,tol): return False
 
             ##exclusive_meta convergence
-            for i, meta in enumerate(layer.meta_exclusives):
+            for i, meta in enumerate(layer.meta_exclusives.values()):
                 if not finished(meta.qka_old,meta.qka,tol): return False
                 if not finished(meta.omega_old,meta.omega,tol): return False
 
