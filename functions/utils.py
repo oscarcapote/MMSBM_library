@@ -106,19 +106,62 @@ def save_MMSBM_parameters(BiNet,dir=".",matrix_format="npy",BiNet_json=False):
     for layer,str_layer in [(na,"a"),(nb,"b")]:
         save_func(dir+"/theta_{}.".format(str_layer)+matrix_format,layer.theta)
         ##inclusive_meta saves
-        for i, meta in enumerate(layer.meta_inclusives):
+        for i, meta in enumerate(layer.meta_inclusives.values()):
             save_func(dir+"/zeta_{}.".format(str(meta))+matrix_format,meta.zeta)
             save_func(dir+"/q_k_tau_{}.".format(str(meta))+matrix_format,meta.q_k_tau)
             # save_func(dir+"/omega_{}_in_{}.".format(str_layer,str(meta))+matrix_format,meta.omega)
 
         ##exclusive_meta saves
-        for i, meta in enumerate(layer.meta_exclusives):
+        for i, meta in enumerate(layer.meta_exclusives.values()):
             save_func(dir+"/qka_{}.".format(str(meta))+matrix_format,meta.qka)
             # save_func(dir+"/omega_{}_ex_{}.".format(str_layer,str(meta))+matrix_format,meta.omega)
 
     #BiNet json
     if BiNet_json:
         save_BiNet_dict(BiNet,dir=dir)
+
+def save_nodes_layer_dict(layer,dir="."):
+    """
+    It saves the some information, including the dict_codes from each layer, into a json called layer_data.json
+
+    Parameters:
+    -----------
+    layer: node_layer
+        Bipartite network object
+
+    dir: str
+        Directory where the files with the MMSBM parameters will be saved
+
+    """
+    dict_info = {}
+    dict_info["dict_codes"] ={str(k):str(v) for k,v in layer.dict_codes.items()}
+    dict_info["name"] = str(layer)
+    dict_info["N_nodes"] = len(layer)
+    dict_info["N_metas"] = layer.N_meta
+    dict_info["K"] = layer.K
+    dict_info["N_metas_exclusives"] = str(layer.N_meta_exclusive)
+    dict_info["N_metas_inclusives"] = str(layer.N_meta_inclusive)
+    dict_info["metadata_exclusives"] = []
+    for i, meta in enumerate(layer.meta_exclusives.values()):
+        dict_info["metadata_exclusives"].append({
+                                        "Meta_name":str(meta),
+                                        "lambda":meta.lambda_val,
+                                        "N_atts":len(meta),
+                                        # "Attributes":[str(i) for i in np.unique(layer.df[str(meta)])],
+                                        "dict_codes":{str(k):str(v) for k,v in meta.dict_codes.items()}
+                                        })
+    dict_info["metadata_inclusives"] = []
+    for i, meta in enumerate(layer.meta_inclusives.values()):
+        dict_info["metadata_inclusives"].append({
+                                        "Meta_name":str(meta),
+                                        "lambda":meta.lambda_val,
+                                        "Tau":meta.Tau,
+                                        "N_atts":len(meta),
+                                        # "Attributes":[str(i) for i in np.unique(layer.df[str(meta)])],
+                                        "dict_codes":{str(k):str(v) for k,v in meta.dict_codes.items()}
+                                        })
+    with open(dir+f'/{str(layer)}_data.json', 'w') as outfile:
+        json.dump(dict_info, outfile)
 
 def save_BiNet_dict(BiNet,dir="."):
     """
@@ -137,26 +180,26 @@ def save_BiNet_dict(BiNet,dir="."):
 
     nb = BiNet.nodes_b
     #other values from MAP and MMSBM saves
-    dic_info = {}
-    dic_info["dict_codes"] ={str(k):str(v) for k,v in BiNet.dict_codes.items()}
-    dic_info["labels name"] = BiNet.labels_name
-    dic_info["N_links"] = len(BiNet.links)
+    dict_info = {}
+    dict_info["dict_codes"] ={str(k):str(v) for k,v in BiNet.dict_codes.items()}
+    dict_info["labels name"] = BiNet.labels_name
+    dict_info["N_links"] = len(BiNet.links)
 
 
     for layer,str_layer in [(na,"a"),(nb,"b")]:
         layer_label = "layer "+str_layer
-        dic_info[layer_label] = {"name":str(layer),
+        dict_info[layer_label] = {"name":str(layer),
                                  "N_nodes":len(layer),
                                  "N_metas":layer.N_meta,
                                  "K":layer.K,
                                  "N_metas_exclusives":str(layer.N_meta_exclusive),
                                  "N_metas_inclusives":str(layer.N_meta_inclusive),
                                  "dict_codes":{str(k):str(v) for k,v in layer.dict_codes.items()}
-                                    }
+                                  }
         ##exclusive_meta saves
-        dic_info[layer_label]["metadata_exclusives"] = []
-        for i, meta in enumerate(layer.meta_exclusives):
-            dic_info[layer_label]["metadata_exclusives"].append({
+        dict_info[layer_label]["metadata_exclusives"] = []
+        for i, meta in enumerate(layer.meta_exclusives.values()):
+            dict_info[layer_label]["metadata_exclusives"].append({
                                                             "Meta_name":str(meta),
                                                             "lambda":meta.lambda_val,
                                                             "N_atts":len(meta),
@@ -164,9 +207,9 @@ def save_BiNet_dict(BiNet,dir="."):
                                                             "dict_codes":{str(k):str(v) for k,v in meta.dict_codes.items()}
                                                             })
         ##inclusive_meta saves
-        dic_info[layer_label]["metadata_inclusives"] = []
-        for i, meta in enumerate(layer.meta_inclusives):
-            dic_info[layer_label]["metadata_inclusives"].append({
+        dict_info[layer_label]["metadata_inclusives"] = []
+        for i, meta in enumerate(layer.meta_inclusives.values()):
+            dict_info[layer_label]["metadata_inclusives"].append({
                                                             "Meta_name":str(meta),
                                                             "lambda":meta.lambda_val,
                                                             "Tau":meta.Tau,
@@ -174,9 +217,9 @@ def save_BiNet_dict(BiNet,dir="."):
                                                             # "Attributes":[str(i) for i in np.unique(layer.df[str(meta)])],
                                                             "dict_codes":{str(k):str(v) for k,v in meta.dict_codes.items()}
                                                             })
-    BiNet.info = dic_info
+    BiNet.info = dict_info
     with open(dir+'/BiNet_data.json', 'w') as outfile:
-        json.dump(dic_info, outfile)
+        json.dump(dict_info, outfile)
 
 
 def load_MAP_parameters(BiNet,directory="."):
@@ -214,12 +257,12 @@ def load_MAP_parameters(BiNet,directory="."):
     for layer,str_layer in [(na,"a"),(nb,"b")]:
         layer.theta = np.load(directory+"theta_{}.".format(str_layer)+matrix_format)
         ##inclusive_meta saves
-        for i, meta in enumerate(layer.meta_inclusives):
+        for i, meta in enumerate(layer.meta_inclusives.values()):
             meta.zeta = np.load(directory+"zeta_{}.".format(str(meta))+matrix_format)
             meta.q_k_tau = np.load(directory+"q_k_tau_{}.".format(str(meta))+matrix_format)
             # meta.omega = np.load(directory+"omega_{}_in_{}.".format(str_layer,str(meta))+matrix_format)
 
         ##exclusive_meta saves
-        for i, meta in enumerate(layer.meta_exclusives):
+        for i, meta in enumerate(layer.meta_exclusives.values()):
             meta.qka = np.load(directory+"qka_{}.".format(str(meta))+matrix_format)
             # meta.omega = np.load(directory+"omega_{}_ex_{}.".format(str_layer,str(meta))+matrix_format)

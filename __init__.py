@@ -228,7 +228,8 @@ class nodes_layer:
         nodes_name : str
             Name of the nodes column in the nodes_layer class
         nodes_info : str or pandas DataFrame
-            Is it is a string, it is the directory of the file with the nodes informations
+            If it is a string, it is the directory of the file with the nodes information.
+            If it is a DataFrame, it is the DataFrame with the nodes information.
         separator : str, default \t
             Separator if the columns of the file that contains the nodes information
         dict_codes : dict, default None
@@ -737,6 +738,17 @@ class nodes_layer:
 
         # update meta related nodes attributes
         self.meta_neighbours_inclusives[str(im)] = [[m for m in L] for L in meta_neighbours]
+
+    def save_nodes_layer(self, dir="."):
+        '''
+        It saves the nodes_layer object
+
+        Parameters
+        -----------
+        dir: str
+            Directory where the file with the nodes_layer will be saved
+        '''
+
 
 class BiNet:
     """
@@ -1363,14 +1375,14 @@ class BiNet:
 
         #Metadata
         ## qka and omegas
-        for meta in na.meta_exclusives:
+        for i,meta in enumerate(na.meta_exclusives.values()):
             meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,na.theta,len(na),na.K,meta.links)
 
-        for meta in nb.meta_exclusives:
+        for i,meta in enumerate(nb.meta_exclusives.values()):
             meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,nb.theta,len(nb),nb.K,meta.links)
 
 
-        for meta in na.meta_inclusives:
+        for i,meta in enumerate(na.meta_inclusives.values()):
             meta.omega = omega_comp_arrays(len(na),len(meta),meta.q_k_tau,na.theta,meta.zeta,na.K,meta.Tau,meta.links,meta.labels)
             #neighbours and denominators from meta
             meta.denominators = np.zeros(len(meta))
@@ -1381,7 +1393,7 @@ class BiNet:
 
 
 
-        for meta in nb.meta_inclusives:
+        for i,meta in enumerate(nb.meta_inclusives.values()):
             meta.omega = omega_comp_arrays(len(nb),len(meta),meta.q_k_tau,nb.theta,meta.zeta,nb.K,meta.Tau,meta.links,meta.labels)
 
             #neighbours and denominators from meta
@@ -1489,16 +1501,21 @@ class BiNet:
 
             for layer,layer_str in [(na,"a"),(nb,"b")]:
                 #layer update
+                # print(f"layer {layer} ({layer_str})")
+                # print(f"\t\t theta")
+
                 layer.theta = theta_comp_arrays_multilayer(self,layer_str)
 
                 ##nodes_a exclusive_meta update
                 for i, meta in enumerate(layer.meta_exclusives.values()):
+#                     print(f"\t\tmeta {meta}")
                     meta.qka = q_ka_comp_arrays(layer.K,meta.N_att,meta.omega,meta.links,meta.masks_att_list)
                     meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,layer.theta,len(layer),layer.K,meta.links)
 
 
                 ##nodes_a inclusive_meta update
                 for i, meta in enumerate(layer.meta_inclusives.values()):
+#                     print(f"\t\tmeta {meta}")
                     meta.zeta = theta_comp_array(meta.N_att,meta.Tau,meta.omega,meta.denominators,meta.links,meta.masks_att_list)#(meta.N_att,meta.Tau,meta.omega,meta.links,meta.masks_att_list)
                     meta.q_k_tau = p_kl_comp_arrays(layer.K,meta.Tau,2,meta.links,meta.omega,meta.masks_label_list)
                     meta.omega = omega_comp_arrays(len(layer),len(meta),meta.q_k_tau,layer.theta,meta.zeta,layer.K,meta.Tau,meta.links,meta.labels)
