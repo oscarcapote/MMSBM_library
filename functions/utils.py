@@ -17,7 +17,6 @@ def init_P_matrix(*shape):
     -------
     A normalized probability matrix that is normalized along the last axis
     """
-    print(shape)
     P = np.random.rand(*shape)
     S = P.sum(axis = len(shape)-1)
     return P/S.reshape((*shape[:-1],-1))
@@ -135,7 +134,7 @@ def save_nodes_layer_dict(layer,dir="."):
     """
     dict_info = {}
     dict_info["dict_codes"] ={str(k):str(v) for k,v in layer.dict_codes.items()}
-    dict_info["name"] = str(layer)
+    dict_info["nodes_name"] = str(layer)
     dict_info["N_nodes"] = len(layer)
     dict_info["N_metas"] = layer.N_meta
     dict_info["K"] = layer.K
@@ -144,8 +143,8 @@ def save_nodes_layer_dict(layer,dir="."):
     dict_info["metadata_exclusives"] = []
     for i, meta in enumerate(layer.meta_exclusives.values()):
         dict_info["metadata_exclusives"].append({
-                                        "Meta_name":str(meta),
-                                        "lambda":meta.lambda_val,
+                                        "meta_name":str(meta),
+                                        "lambda_val":meta.lambda_val,
                                         "N_atts":len(meta),
                                         # "Attributes":[str(i) for i in np.unique(layer.df[str(meta)])],
                                         "dict_codes":{str(k):str(v) for k,v in meta.dict_codes.items()}
@@ -153,14 +152,15 @@ def save_nodes_layer_dict(layer,dir="."):
     dict_info["metadata_inclusives"] = []
     for i, meta in enumerate(layer.meta_inclusives.values()):
         dict_info["metadata_inclusives"].append({
-                                        "Meta_name":str(meta),
-                                        "lambda":meta.lambda_val,
+                                        "meta_name":str(meta),
+                                        "lambda_val":meta.lambda_val,
                                         "Tau":meta.Tau,
                                         "N_atts":len(meta),
+                                        "separator":meta._separator,
                                         # "Attributes":[str(i) for i in np.unique(layer.df[str(meta)])],
                                         "dict_codes":{str(k):str(v) for k,v in meta.dict_codes.items()}
                                         })
-    with open(dir+f'/{str(layer)}_data.json', 'w') as outfile:
+    with open(dir+f'/layer_{str(layer)}_data.json', 'w') as outfile:
         json.dump(dict_info, outfile)
 
 def save_BiNet_dict(BiNet,dir="."):
@@ -182,41 +182,47 @@ def save_BiNet_dict(BiNet,dir="."):
     #other values from MAP and MMSBM saves
     dict_info = {}
     dict_info["dict_codes"] ={str(k):str(v) for k,v in BiNet.dict_codes.items()}
-    dict_info["labels name"] = BiNet.labels_name
-    dict_info["N_links"] = len(BiNet.links)
+    dict_info["links_label"] = BiNet.labels_name
+    dict_info["nodes_a_name"] = str(na)
+    dict_info["nodes_b_name"] = str(nb)
+    dict_info["Ka"] = na.K
+    dict_info["Kb"] = nb.K
+    dict_info["separator"] = BiNet._separator
+    dict_info["dict_codes_a"] = {str(k): str(v) for k, v in na.dict_codes.items()}
+    dict_info["dict_codes_b"] = {str(k): str(v) for k, v in nb.dict_codes.items()}
 
 
-    for layer,str_layer in [(na,"a"),(nb,"b")]:
-        layer_label = "layer "+str_layer
-        dict_info[layer_label] = {"name":str(layer),
-                                 "N_nodes":len(layer),
-                                 "N_metas":layer.N_meta,
-                                 "K":layer.K,
-                                 "N_metas_exclusives":str(layer.N_meta_exclusive),
-                                 "N_metas_inclusives":str(layer.N_meta_inclusive),
-                                 "dict_codes":{str(k):str(v) for k,v in layer.dict_codes.items()}
-                                  }
-        ##exclusive_meta saves
-        dict_info[layer_label]["metadata_exclusives"] = []
-        for i, meta in enumerate(layer.meta_exclusives.values()):
-            dict_info[layer_label]["metadata_exclusives"].append({
-                                                            "Meta_name":str(meta),
-                                                            "lambda":meta.lambda_val,
-                                                            "N_atts":len(meta),
-                                                            # "Attributes":[str(i) for i in np.unique(layer.df[str(meta)])],
-                                                            "dict_codes":{str(k):str(v) for k,v in meta.dict_codes.items()}
-                                                            })
-        ##inclusive_meta saves
-        dict_info[layer_label]["metadata_inclusives"] = []
-        for i, meta in enumerate(layer.meta_inclusives.values()):
-            dict_info[layer_label]["metadata_inclusives"].append({
-                                                            "Meta_name":str(meta),
-                                                            "lambda":meta.lambda_val,
-                                                            "Tau":meta.Tau,
-                                                            "N_atts":len(meta),
-                                                            # "Attributes":[str(i) for i in np.unique(layer.df[str(meta)])],
-                                                            "dict_codes":{str(k):str(v) for k,v in meta.dict_codes.items()}
-                                                            })
+    # for layer,str_layer in [(na,"a"),(nb,"b")]:
+    #     layer_label = "layer "+str_layer
+    #     dict_info[layer_label] = {"name":str(layer),
+    #                              "N_nodes":len(layer),
+    #                              "N_metas":layer.N_meta,
+    #                              "K":layer.K,
+    #                              "N_metas_exclusives":str(layer.N_meta_exclusive),
+    #                              "N_metas_inclusives":str(layer.N_meta_inclusive),
+    #                              "dict_codes":{str(k):str(v) for k,v in layer.dict_codes.items()}
+    #                               }
+    #     ##exclusive_meta saves
+    #     dict_info[layer_label]["metadata_exclusives"] = []
+    #     for i, meta in enumerate(layer.meta_exclusives.values()):
+    #         dict_info[layer_label]["metadata_exclusives"].append({
+    #                                                         "Meta_name":str(meta),
+    #                                                         "lambda":meta.lambda_val,
+    #                                                         "N_atts":len(meta),
+    #                                                         # "Attributes":[str(i) for i in np.unique(layer.df[str(meta)])],
+    #                                                         "dict_codes":{str(k):str(v) for k,v in meta.dict_codes.items()}
+    #                                                         })
+    #     ##inclusive_meta saves
+    #     dict_info[layer_label]["metadata_inclusives"] = []
+    #     for i, meta in enumerate(layer.meta_inclusives.values()):
+    #         dict_info[layer_label]["metadata_inclusives"].append({
+    #                                                         "Meta_name":str(meta),
+    #                                                         "lambda":meta.lambda_val,
+    #                                                         "Tau":meta.Tau,
+    #                                                         "N_atts":len(meta),
+    #                                                         # "Attributes":[str(i) for i in np.unique(layer.df[str(meta)])],
+    #                                                         "dict_codes":{str(k):str(v) for k,v in meta.dict_codes.items()}
+    #                                                         })
     BiNet.info = dict_info
     with open(dir+'/BiNet_data.json', 'w') as outfile:
         json.dump(dict_info, outfile)

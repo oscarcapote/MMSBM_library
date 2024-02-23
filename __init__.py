@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 from MMSBM_library.functions import *
 
+import functions.utils
+
 
 class metadata_layer:
     """
@@ -424,7 +426,7 @@ class nodes_layer:
     def __len__(self):
         return self.N_nodes
 
-    def add_exclusive_metadata(self, lambda_val, meta_name,*,dict_codes=None):
+    def add_exclusive_metadata(self, lambda_val, meta_name,*,dict_codes=None,**kwargs):
         '''
         Add exclusive_metadata object to node_layer object
 
@@ -499,7 +501,7 @@ class nodes_layer:
 
 
 
-    def add_inclusive_metadata(self, lambda_val, meta_name, Tau,*,dict_codes=None, separator="|"):
+    def add_inclusive_metadata(self, lambda_val, meta_name, Tau,*,dict_codes=None, separator="|",**kwargs):
         '''
         Add inclusive_metadata object to node_layer object
 
@@ -550,7 +552,7 @@ class nodes_layer:
                 meta_neighbours.append([j for j in i.split(separator)])
 
 
-        if dict_codes != None:
+        if dict_codes is not None:
             if self.df.dtypes[meta_name] == np.dtype("int64") or self.df.dtypes[meta_name] == np.dtype("int32") or self.df.dtypes[meta_name] == np.dtype("int16"):
                 new_dict = {}
                 for k in dict_codes:
@@ -746,8 +748,34 @@ class nodes_layer:
         Parameters
         -----------
         dir: str
-            Directory where the file with the nodes_layer will be saved
+            Directory where the json with the nodes_layer information will be saved
         '''
+
+        functions.utils.save_nodes_layer_dict(self, dir)
+
+    @classmethod
+    def load_nodes_layer_from_file(cls, df, json_dir="."):
+        '''
+        It loads the nodes_layer object from a JSON file
+
+        Parameters
+        -----------
+        dir: str
+            Directory where the json with the nodes_layer information is saved
+        '''
+
+        with open(json_dir, "r") as f:
+            data = json.load(f)
+        layer = cls(nodes_info=df,**data)
+
+        for m in data["metadata_exclusives"]:
+            layer.add_exclusive_metadata(**m)
+
+        for m in data["metadata_inclusives"]:
+            layer.add_inclusive_metadata(**m)
+
+        return layer
+
 
 
 class BiNet:
@@ -872,6 +900,8 @@ class BiNet:
             Separator used to read links DataFrame file. Default is \t
         """
         #Checking type of links
+        self._separator = separator
+
         if isinstance(links, pd.DataFrame):
             self.df = links
         elif isinstance(links, str):
@@ -906,15 +936,18 @@ class BiNet:
         ## Coding labels
         self.labels_name = links_label
         self._dict_codes = add_codes(self,links_label)
-        if dict_codes != None:
+        if dict_codes is not None:
+            #Checking type of labels
             if self.df.dtypes[self.labels_name] == np.dtype("int64") or self.df.dtypes[self.labels_name] == np.dtype("int32") or self.df.dtypes[self.labels_name] == np.dtype("int16"):
                 new_dict = {}
                 for k in dict_codes:
                     new_dict[int(k)] = int(dict_codes[k])
                 dict_codes = new_dict
             else:
-                for k in new_dict:
+                new_dict = {}
+                for k in dict_codes:
                     dict_codes[k] = int(dict_codes[k])
+                dict_codes = new_dict
 
             replacer = {}
             for att in dict_codes:
@@ -955,7 +988,7 @@ class BiNet:
         return dc
 
     @classmethod
-    def load_BiNet_from_json(cls, json_file, links, links_label,*, nodes_a = None, nodes_b = None, separator="\t"):
+    def load_BiNet_from_json(cls, json_file, links, links_label,*, nodes_a = None, nodes_b = None, nodes_a_dir = None, nodes_b_dir = None, separator="\t"):
         """
         Load a BiNet instance from a JSON file containing MMSBM parameters and link information.
 
@@ -964,8 +997,8 @@ class BiNet:
         json_file: str
             Path to the JSON files containing MMSBM parameters.
 
-        links: array-like
-            Array-like object representing links between nodes in both layers of the BiNet.
+        links: str, pandas DataFrame
+            DataFrame or directory containing the links between nodes_a and nodes_b and their labels.
 
         links_label: array-like
             Array-like object representing the labels corresponding to the links.
@@ -978,7 +1011,7 @@ class BiNet:
         nodes_b: nodes_layer, str, pd.DataFrame, None, default: None
             - If nodes_layer: Existing instance of the nodes_layer class representing the second layer.
             - If str or pd.DataFrame: If str, a name for the second layer. If pd.DataFrame, DataFrame with nodes and attributes.
-            - If None: The second layer will be created later.
+            - If None: The second layer will be created later as a simple layer (no metadata)
 
         separator: str, default: "\t"
             Separator used in the provided JSON file.
@@ -1006,7 +1039,10 @@ class BiNet:
             nodes_a_name = str(na)
             Ka = nodes_a.K
         elif isinstance(nodes_a, str) or isinstance(nodes_a, pd.DataFrame):
-            na = nodes_layer(data["layer a"]["K"],data["layer a"]["name"],nodes_a,dict_codes=data["layer a"]["dict_codes"])
+            if nodes_a_dir is None:
+                raise ValueError("If nodes_a is a string or a DataFrame, nodes_a_dir must be provided (the same for nodes_b).")
+            na = load_nodes_layer_from_file(nodes_a, nodes_a_dir)
+            Ka = nodes_a.K
         elif  nodes_a == None:
             #later it will be created
             na = None
@@ -1017,7 +1053,11 @@ class BiNet:
             nodes_b_name = str(nb)
             Kb = nodes_b.K
         elif isinstance(nodes_b, str) or isinstance(nodes_b, pd.DataFrame):
-            nb = nodes_layer(data["layer b"]["K"],data["layer b"]["name"],nodes_b,dict_codes=data["layer b"]["dict_codes"])
+            if nodes_a_dir is None:
+                raise ValueError(
+                    "If nodes_b is a string or a DataFrame, nodes_b_dir must be provided (the same for nodes_a).")
+            nb = load_nodes_layer_from_file(nodes_b, nodes_b_dir)
+            Kb = nodes_b.K
         elif  nodes_b == None:
             #later it will be created
             nb = None
@@ -1027,109 +1067,29 @@ class BiNet:
         #creating BiNet
         if na == None and nb == None:
             BN = cls(links,links_label,
-                     nodes_a = None, Ka=data["layer a"]["K"], nodes_a_name=data["layer a"]["name"],
-                               dict_codes_a=data["layer a"]["dict_codes"],
-                     nodes_b = None, Kb=data["layer b"]["K"], nodes_b_name=data["layer b"]["name"],
-                               dict_codes_b=data["layer b"]["dict_codes"],
+                     nodes_a = nb, Ka=data["Ka"], nodes_a_name=data["nodes_a_name"],
+                               dict_codes_a=data["dict_codes_b"],
+                     nodes_b = nb, Kb=data["Kb"], nodes_b_name=data["nodes_b_name"],
+                               dict_codes_b=data["dict_codes_b"],
                      separator=separator,dict_codes = data["dict_codes"])
 
 
-            #layer a
-            na = BN.nodes_a
-            #layer b
-            nb = BN.nodes_b
-            for l,layer in [("a",na),("b",nb)]:
 
-                # print(len(layer.meta_exclusives),len(layer.meta_exclusives))
-                #inclusives metadata
-                for meta in data["layer {}".format(l)]["metadata_inclusives"]:
-                    layer.add_inclusive_metadata(meta["lambda"],
-                                      meta["Meta_name"],
-                                      meta["Tau"],
-                                      dict_codes = meta["dict_codes"])
-
-                #inclusives metadata
-                for meta in data["layer {}".format(l)]["metadata_exclusives"]:
-                    layer.add_exclusive_metadata(meta["lambda"],
-                                      meta["Meta_name"],
-                                      dict_codes = meta["dict_codes"])
         elif na == None:
             BN = cls(links,links_label,
-                     nodes_a = None, Ka=data["layer a"]["K"], nodes_a_name=data["layer a"]["name"],dict_codes_a=data["layer a"]["dict_codes"],
-                     nodes_b = nb,
-                     separator=separator,dict_codes = data["dict_codes"])
-            #layer a
-            na = BN.nodes_a
-            #layer b
-            nb = BN.nodes_b
-
-            for l,layer in [("a",na)]:
-
-                # print(len(layer.meta_exclusives),len(layer.meta_exclusives))
-                #inclusives metadata
-                for meta in data["layer {}".format(l)]["metadata_inclusives"]:
-                    layer.add_inclusive_metadata(meta["lambda"],
-                                      meta["Meta_name"],
-                                      meta["Tau"],
-                                      dict_codes = meta["dict_codes"])
-
-                #inclusives metadata
-                for meta in data["layer {}".format(l)]["metadata_exclusives"]:
-                    layer.add_exclusive_metadata(meta["lambda"],
-                                      meta["Meta_name"],
-                                      dict_codes = meta["dict_codes"])
+                     nodes_a = nb, Ka=data["Ka"], nodes_a_name=data["nodes_a_name"],
+                     nodes_b = nb, separator=data["separator"],dict_codes = data["dict_codes"])
 
         elif nb == None:
             BN = cls(links,links_label,
                      nodes_a = na,
-                     nodes_b = None, Kb=data["layer b"]["K"], nodes_b_name=data["layer b"]["name"],dict_codes_b=data["layer b"]["dict_codes"],
-                     separator=separator,dict_codes = data["dict_codes"])
-
-
-            #layer a
-            na = BN.nodes_a
-            #layer b
-            nb = BN.nodes_b
-
-            for l,layer in [("b",nb)]:
-
-                # print(len(layer.meta_exclusives),len(layer.meta_exclusives))
-                #inclusives metadata
-                for meta in data["layer {}".format(l)]["metadata_inclusives"]:
-                    layer.add_inclusive_metadata(meta["lambda"],
-                                      meta["Meta_name"],
-                                      meta["Tau"],
-                                      dict_codes = meta["dict_codes"])
-
-                #inclusives metadata
-                for meta in data["layer {}".format(l)]["metadata_exclusives"]:
-                    layer.add_exclusive_metadata(meta["lambda"],
-                                      meta["Meta_name"],
-                                      dict_codes = meta["dict_codes"])
-
+                     nodes_b = nb, Kb=data["K"], nodes_b_name=data["nodes_b_name"],
+                     separator=data["separator"],dict_codes = data["dict_codes"])
         else:
             BN = cls(links,links_label,
                      nodes_a = na,
                      nodes_b = nb,
-                     separator=separator,dict_codes = data["dict_codes"])
-
-        #metadatas
-        # for l,layer in [("a",na),("b",nb)]:
-        #
-        #     print(len(layer.meta_exclusives),len(layer.meta_exclusives))
-        #     #inclusives metadata
-        #     for meta in data["layer {}".format(l)]["metadata_inclusives"]:
-        #         layer.add_inclusive_metadata(meta["lambda"],
-        #                           meta["Meta_name"],
-        #                           meta["Tau"],
-        #                           dict_codes = meta["dict_codes"])
-        #
-        #     #inclusives metadata
-        #     for meta in data["layer {}".format(l)]["metadata_exclusives"]:
-        #         layer.add_exclusive_metadata(meta["lambda"],
-        #                           meta["Meta_name"],
-        #                           dict_codes = meta["dict_codes"])
-
+                     separator=data["separator"],dict_codes = data["dict_codes"])
 
         return BN
 
@@ -1329,7 +1289,46 @@ class BiNet:
         self.nodes_b.denominators = self.nodes_b.denominators[:,np.newaxis]
             # for meta in self.nodes_b.meta_exclusives:
 
+    def save_BiNet(self, dir=".",layers=True):
+        '''
+        It saves the BiNet data into a JSON file in dir
 
+        Parameters
+        -----------
+        dir: str
+            Directory where the JSON with the BiNet information will be saved
+        layers: bool, default: True
+            If True, it saves the nodes_layer objects in the JSON file in the same directory.
+        '''
+        functions.utils.save_BiNet_dict(self, dir)
+
+        if layers:
+            self.nodes_a.save_nodes_layer(dir)
+            self.nodes_b.save_nodes_layer(dir)
+
+    @classmethod
+    def load_BiNet_from_file(cls, df_links,json_dir, layers=True,*, nodes_a = None, nodes_b = None):
+        '''
+        It loads the BiNet data from a JSON file in dir
+
+        Parameters
+        -----------
+        dir: str
+            Directory where the JSON with the BiNet information is saved
+        layers: bool, default: True
+            If True, it loads the nodes_layer objects from the JSON file in the same directory.
+        '''
+        with open(json_dir, "r") as f:
+            data = json.load(f)
+        BN = cls(links=df_links, **data)
+
+        if nodes_a is not None:
+            BN.nodes_a = nodes_a
+        if layers:
+            BN.nodes_a = nodes_layer.load_nodes_layer_from_file(json_dir)
+            BN.nodes_b = nodes_layer.load_nodes_layer_from_file(json_dir)
+
+        return BN
     def init_MAP_from_directory(self,training=None,dir="."):
         '''
         Initialize the Maximum a Posteriori (MAP) algorithm to obtain the most plausible membership parameters of the
