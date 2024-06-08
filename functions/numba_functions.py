@@ -12,7 +12,7 @@ def A_lambda(A,lambda_val):
 @jit([float64[:,:](float64[:,:,:,:])])
 def sum_omega_02(omega):
     """
-    Sum over axis 0 and 2 the omega matrix. Is equivalent to np.sum(omega, axis=(0,2))
+    Sum over axis 0 and 2 the omega matrix. Is equivalent to np.sum(omega, axis=(0,2)) prueba
     """
     return omega.sum(axis=0).sum(axis=1)
 
