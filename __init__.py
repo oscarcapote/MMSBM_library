@@ -246,7 +246,6 @@ class nodes_layer:
         elif type(nodes_info) == type(pd.DataFrame()):
             self.df = nodes_info
 
-        self._dict_codes = add_codes(self,nodes_name)
 
         if dict_codes != None:
             if self.df.dtypes[self.node_type] == np.dtype("int64") or self.df.dtypes[self.node_type] == np.dtype("int32") or self.df.dtypes[self.node_type] == np.dtype("int16"):
@@ -258,11 +257,10 @@ class nodes_layer:
                 for k in dict_codes:
                     dict_codes[k] = int(dict_codes[k])
 
-            replacer = {}
-            for att in dict_codes:
-                replacer[self._dict_codes[att]]= dict_codes[att]
             self._dict_codes = dict_codes
-            self.df.replace({nodes_name+"_id":replacer}, inplace=True)
+            self.df.replace({nodes_name+"_id":dict_codes}, inplace=True)
+        else:
+            self._dict_codes = add_codes(self, nodes_name)
 
 
         self.nodes_list = self.df[nodes_name].unique()
@@ -449,27 +447,23 @@ class nodes_layer:
 
         # create metadata object
         em = exclusive_metadata(lambda_val, meta_name)
-        em.dict_codes = add_codes(self,meta_name)
 
+
+        # print(self.df.columns,df_dropna.columns)
+
+        if dict_codes != None:
+            if df_dropna.dtypes[meta_name] == np.dtype("int64") or df_dropna.dtypes[meta_name] == np.dtype("int32") or df_dropna.dtypes[meta_name] == np.dtype("int16"):
+                dict_codes = {int(k):int(v) for k,v in dict_codes.items()}
+
+            em.dict_codes = dict_codes
+            df_dropna.replace({meta_name +"_id":dict_codes}, inplace=True)
+        else:
+            em.dict_codes = add_codes(self, meta_name)
 
         df_dropna = self.df.dropna(subset=[meta_name])
         observed = df_dropna[str(self)+"_id"].values
 
         em._meta_code = self.N_meta_exclusive
-        # print(self.df.columns,df_dropna.columns)
-
-        if dict_codes != None:
-            if df_dropna.dtypes[meta_name] == np.dtype("int64") or df_dropna.dtypes[meta_name] == np.dtype("int32") or df_dropna.dtypes[meta_name] == np.dtype("int16"):
-                new_dict = {}
-                for k in dict_codes:
-                    new_dict[int(k)] = int(dict_codes[k])
-                dict_codes = new_dict
-            replacer = {}
-            for att in dict_codes:
-                replacer[em.dict_codes[att]]= dict_codes[att]
-
-            em.dict_codes = dict_codes
-            df_dropna.replace({meta_name +"_id":replacer}, inplace=True)
 
         em.links = df_dropna[[self.node_type + "_id", meta_name + "_id"]].values
         em.N_att = len(em.dict_codes)
@@ -1053,7 +1047,7 @@ class BiNet:
             nodes_b_name = str(nb)
             Kb = nodes_b.K
         elif isinstance(nodes_b, str) or isinstance(nodes_b, pd.DataFrame):
-            if nodes_a_dir is None:
+            if nodes_b_dir is None:
                 raise ValueError(
                     "If nodes_b is a string or a DataFrame, nodes_b_dir must be provided (the same for nodes_a).")
             nb = load_nodes_layer_from_file(nodes_b, nodes_b_dir)
@@ -1067,8 +1061,8 @@ class BiNet:
         #creating BiNet
         if na == None and nb == None:
             BN = cls(links,links_label,
-                     nodes_a = nb, Ka=data["Ka"], nodes_a_name=data["nodes_a_name"],
-                               dict_codes_a=data["dict_codes_b"],
+                     nodes_a = na, Ka=data["Ka"], nodes_a_name=data["nodes_a_name"],
+                               dict_codes_a=data["dict_codes_a"],
                      nodes_b = nb, Kb=data["Kb"], nodes_b_name=data["nodes_b_name"],
                                dict_codes_b=data["dict_codes_b"],
                      separator=separator,dict_codes = data["dict_codes"])
@@ -1077,7 +1071,7 @@ class BiNet:
 
         elif na == None:
             BN = cls(links,links_label,
-                     nodes_a = nb, Ka=data["Ka"], nodes_a_name=data["nodes_a_name"],
+                     nodes_a = na, Ka=data["Ka"], nodes_a_name=data["nodes_a_name"],
                      nodes_b = nb, separator=data["separator"],dict_codes = data["dict_codes"])
 
         elif nb == None:
@@ -1324,6 +1318,8 @@ class BiNet:
 
         if nodes_a is not None:
             BN.nodes_a = nodes_a
+        if nodes_b is not None:
+            BN.nodes_b = nodes_b
         if layers:
             BN.nodes_a = nodes_layer.load_nodes_layer_from_file(json_dir)
             BN.nodes_b = nodes_layer.load_nodes_layer_from_file(json_dir)
@@ -1353,6 +1349,11 @@ class BiNet:
 
         # Links to train management
         if isinstance(training,pd.DataFrame):
+            if str(self.nodes_a)+"_id" not in training.columns:
+                training[str(self.nodes_a)+"_id"] = training[[str(self.nodes_a)]].replace({str(self.nodes_a):self.nodes_a.dict_codes})
+            if str(self.nodes_b)+"_id" not in training.columns:
+                training[str(self.nodes_b)+"_id"] = training[[str(self.nodes_b)]].replace({str(self.nodes_b):self.nodes_b.dict_codes})
+
             self.links_training = training[[str(self.nodes_a)+"_id",str(self.nodes_b)+"_id]"]].values
             self.labels_training = training[self.labels_name+"_id"].values
         elif isinstance(training,list) or isinstance(training,np.ndarray):
