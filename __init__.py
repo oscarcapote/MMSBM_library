@@ -809,14 +809,14 @@ class BiNet:
     __str__()
         Returns the name of the labels column.
 
-    init_MAP(tol=0.001, training=None, seed=None)
-        Initializes the MAP algorithm to find the most plausible membership parameters of the MMSBM.
+    init_EM(tol=0.001, training=None, seed=None)
+        Initializes the EM algorithm to find the most plausible membership parameters of the MMSBM.
 
-    init_MAP_from_directory(training=None, dir=".")
-        Initializes the MAP algorithm using parameters saved in files in a specified directory.
+    init_EM_from_directory(training=None, dir=".")
+        Initializes the EM algorithm using parameters saved in files in a specified directory.
 
-    MAP_step(N_steps=1)
-        Performs N_steps steps of the MAP algorithm.
+    EM_step(N_steps=1)
+        Performs N_steps steps of the EM algorithm.
 
     get_loglikelihood()
         Returns the loglikelihood of the current state of the MMSBM.
@@ -834,7 +834,7 @@ class BiNet:
         Returns a deep copy of the BiNet instance.
 
     converges()
-        Returns True if the MAP algorithm has converged, False otherwise.
+        Returns True if the EM algorithm has converged, False otherwise.
 
     Notes
     -----
@@ -1128,10 +1128,10 @@ class BiNet:
             raise ValueError("Nodes type not found")
 
 
-    #MAP ALGORITHM
-    def init_MAP(self,tol=0.001, training = None, seed=None):
+    #EM algorithm
+    def init_EM(self,tol=0.001, training = None, seed=None):
         '''
-        Initialize the MAP algorithm to get the most plausible memberhip parameters of the MMSBM
+        Initialize the EM algorithm to get the most plausible membership parameters of the MMSBM
 
         Parameters
         -----------
@@ -1148,7 +1148,7 @@ class BiNet:
 
         Notes
         -----
-        This method initializes the MAP algorithm by setting up probability matrices (BiNet.pkl), memberships (BiNet.nodes_a.theta and BiNet.nodes_b.theta), and managing
+        This method initializes the EM algorithm by setting up probability matrices (BiNet.pkl), memberships (BiNet.nodes_a.theta and BiNet.nodes_b.theta), and managing
         links to train. The tolerance, seed, and training data can be specified to customize the initialization process.
         '''
         # Probability matrices
@@ -1285,14 +1285,15 @@ class BiNet:
 
     def save_BiNet(self, dir=".",layers=True):
         '''
-        It saves the BiNet data into a JSON file in dir
+        It saves the BiNet data into a JSON file in dir. If layers==True,
+        it saves the nodes_layer objects in JSONs files in the same directory.
 
         Parameters
         -----------
         dir: str
             Directory where the JSON with the BiNet information will be saved
         layers: bool, default: True
-            If True, it saves the nodes_layer objects in the JSON file in the same directory.
+            If True, it saves the nodes_layer objects in JSONs files in the same directory.
         '''
         functions.utils.save_BiNet_dict(self, dir)
 
@@ -1325,9 +1326,9 @@ class BiNet:
             BN.nodes_b = nodes_layer.load_nodes_layer_from_file(json_dir)
 
         return BN
-    def init_MAP_from_directory(self,training=None,dir="."):
+    def init_EM_from_directory(self,training=None,dir="."):
         '''
-        Initialize the Maximum a Posteriori (MAP) algorithm to obtain the most plausible membership parameters of the
+        Initialize the Expectation Maximization (EM) algorithm to obtain the most plausible membership parameters of the
         Mixed-Membership Stochastic Block Model (MMSBM) using parameters saved in files located in a specified directory.
 
             Parameters
@@ -1345,7 +1346,7 @@ class BiNet:
         nb = self.nodes_b
 
 
-        load_MAP_parameters(self,dir)
+        load_EM_parameters(self,dir)
 
         # Links to train management
         if isinstance(training,pd.DataFrame):
@@ -1463,18 +1464,18 @@ class BiNet:
         nb.denominators = nb.denominators[:,np.newaxis]
 
 
-    def MAP_step(self,N_steps=1):
+    def EM_step(self,N_steps=1):
         """
         Performs the N_steps number of steps to update the model parameters.
 
         Parameters
         ----------
         N_steps: int, default: 1
-            Number of MAP steps to be performed. Default is 1.
+            Number of EM steps to be performed. Default is 1.
 
         Notes
         -----
-        This method updates the model parameters using the Maximum a Posteriori (MAP) estimation.
+        This method updates the model parameters using the Expectation Maximization (EM) estimation.
         The Maximum a Posteriori algorithm is employed for iterative updates.
 
         During each step, the following updates are performed:
@@ -1486,7 +1487,7 @@ class BiNet:
 
         After each step, a deep copy of the current model parameters is stored for convergence tracking.
 
-        It is recommended to perform multiple MAP steps to refine the model parameters.
+        It is recommended to perform multiple EM steps to refine the model parameters.
 
         """
 
@@ -1748,7 +1749,7 @@ class BiNet:
 
     def deep_copying(self):
         """
-        Performs a deep copy of all parameters in the MAP algorithm.
+        Performs a deep copy of all parameters in the EM algorithm.
 
         Notes
         -----
@@ -1795,7 +1796,7 @@ class BiNet:
 
     def converges(self):
         """
-        Checks if the parameters have converged during the MAP procedure.
+        Checks if the parameters have converged during the EM procedure.
 
         Returns
         -------

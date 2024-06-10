@@ -179,16 +179,16 @@ def save_BiNet_dict(BiNet,dir="."):
     na = BiNet.nodes_a
 
     nb = BiNet.nodes_b
-    #other values from MAP and MMSBM saves
+    #other values from EM and MMSBM saves
     dict_info = {}
     dict_info["dict_codes"] ={str(k):str(v) for k,v in BiNet.dict_codes.items()}
     dict_info["links_label"] = BiNet.labels_name
     dict_info["nodes_a_name"] = str(na)
     dict_info["nodes_b_name"] = str(nb)
     dict_info["Ka"] = na.K
+    dict_info["dict_codes_a"] = {str(k): str(v) for k, v in na.dict_codes.items()}
     dict_info["Kb"] = nb.K
     dict_info["separator"] = BiNet._separator
-    dict_info["dict_codes_a"] = {str(k): str(v) for k, v in na.dict_codes.items()}
     dict_info["dict_codes_b"] = {str(k): str(v) for k, v in nb.dict_codes.items()}
 
 
@@ -228,7 +228,7 @@ def save_BiNet_dict(BiNet,dir="."):
         json.dump(dict_info, outfile)
 
 
-def load_MAP_parameters(BiNet,directory="."):
+def load_EM_parameters(BiNet,directory="."):
     """
     It loads the parameters from matrices in the directory
 
