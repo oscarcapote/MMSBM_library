@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from MMSBM_library.functions import *
 
-import functions.utils
+# import MMSBM_library.functions.utils
 
 
 class metadata_layer:
