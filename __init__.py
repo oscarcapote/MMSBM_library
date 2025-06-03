@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from MMSBM_library.functions import *
 
-import functions.utils
+# import MMSBM_library.functions.utils
 
 
 class metadata_layer:
@@ -1204,7 +1204,7 @@ class BiNet:
             meta.qka = init_P_matrix(self.nodes_b.K, meta.N_att)
             meta.omega = omega_comp_arrays_exclusive(meta.qka,meta.N_att,self.nodes_b.theta,len(self.nodes_b),self.nodes_b.K,meta.links)
 
-        ## ql_tau, zetes and omegas omega_comp_arrays(omega,p_kl,theta,eta,K,L,links_array,links_ratings):
+        ## q_k_tau, zetes and omegas omega_comp_arrays(omega,p_kl,theta,eta,K,L,links_array,links_ratings):
         for meta_name,meta in self.nodes_a.meta_inclusives.items():
             meta.q_k_tau = init_P_matrix(self.nodes_a.K, meta.Tau, 2)
             meta.zeta = init_P_matrix(len(meta), meta.Tau)
@@ -1317,15 +1317,21 @@ class BiNet:
             data = json.load(f)
         BN = cls(links=df_links, **data)
 
-        if nodes_a is not None:
-            BN.nodes_a = nodes_a
-        if nodes_b is not None:
-            BN.nodes_b = nodes_b
         if layers:
             BN.nodes_a = nodes_layer.load_nodes_layer_from_file(json_dir)
             BN.nodes_b = nodes_layer.load_nodes_layer_from_file(json_dir)
+        else:
+            if nodes_a is not None:
+                BN.nodes_a = nodes_a
+            if nodes_b is not None:
+                BN.nodes_b = nodes_b
+            
 
+
+        
         return BN
+    
+    
     def init_EM_from_directory(self,training=None,dir="."):
         '''
         Initialize the Expectation Maximization (EM) algorithm to obtain the most plausible membership parameters of the
@@ -1355,12 +1361,12 @@ class BiNet:
             if str(self.nodes_b)+"_id" not in training.columns:
                 training[str(self.nodes_b)+"_id"] = training[[str(self.nodes_b)]].replace({str(self.nodes_b):self.nodes_b.dict_codes})
 
-            self.links_training = training[[str(self.nodes_a)+"_id",str(self.nodes_b)+"_id]"]].values
+            self.links_training = training[[str(self.nodes_a)+"_id",str(self.nodes_b)+"_id"]].values
             self.labels_training = training[self.labels_name+"_id"].values
         elif isinstance(training,list) or isinstance(training,np.ndarray):
             self.links_training = self.links[training]
             self.labels_training = self.labels_array[training]
-        elif training == None:
+        elif training is None:
             self.links_training = self.links
             self.labels_training = self.labels_array
 
@@ -1402,6 +1408,7 @@ class BiNet:
 
             for m in range(len(meta)):
                 meta.denominators[m] += len(meta.neighbours_meta)
+            meta.denominators = meta.denominators[:,np.newaxis]
 
 
         #creating arrays with the denominator (that are constants) of each node in both layers and em layers
@@ -1516,13 +1523,10 @@ class BiNet:
 
                 ##nodes_a inclusive_meta update
                 for i, meta in enumerate(layer.meta_inclusives.values()):
-#                     print(f"\t\tmeta {meta}")
-                    meta.zeta = theta_comp_array(meta.N_att,meta.Tau,meta.omega,meta.denominators,meta.links,meta.masks_att_list)#(meta.N_att,meta.Tau,meta.omega,meta.links,meta.masks_att_list)
+                    #print(f"\t\tmeta: {meta}")
+                    meta.zeta = theta_comp_array(meta.N_att,meta.Tau,meta.omega,meta.denominators,meta.links,meta.masks_att_list)
                     meta.q_k_tau = p_kl_comp_arrays(layer.K,meta.Tau,2,meta.links,meta.omega,meta.masks_label_list)
                     meta.omega = omega_comp_arrays(len(layer),len(meta),meta.q_k_tau,layer.theta,meta.zeta,layer.K,meta.Tau,meta.links,meta.labels)
-
-
-
 
             self.pkl = p_kl_comp_arrays(na.K,nb.K,self.N_labels, self.links_training, self.omega, self.masks_label_list)
             self.omega = omega_comp_arrays(len(self.nodes_a),len(self.nodes_b),self.pkl,self.nodes_a.theta,self.nodes_b.theta,self.nodes_a.K,self.nodes_b.K,self.links_training,self.labels_training)
@@ -1658,12 +1662,13 @@ class BiNet:
             elif isinstance(links,pd.DataFrame):
                 decoder = {self._dict_codes[n]:n for n in self._dict_codes}
                 labels = [decoder[n] for n in labels_id]
-                links["Predicted "+self.labels_name] = labels
+                result_df = links.copy()
+                result_df.loc[:, "Predicted "+self.labels_name] = labels
 
                 if to_return == "df":
-                    return links
+                    return result_df
                 elif to_return == "both":
-                    return links, labels_id
+                    return result_df, labels_id
             elif len(links.shape)==1:
                 to_link = self.links[links]
             elif len(links.shape)==2:
@@ -1692,7 +1697,7 @@ class BiNet:
 
     def get_accuracy(self, predicted_labels = None, test_labels = None, Pij = None,links = None, estimator = "max_probability"):
         """
-        Computes the predicted labels of the model given the MMSBM parameters. They can be measured by different estimators:
+        Computes the ratio of correctly predicted labels of the model given the MMSBM parameters. They can be measured by different estimators:
             -max_probability: The predicted label will be the most plausible label
             -mean: The predicted label will be the mean
 
@@ -1725,9 +1730,11 @@ class BiNet:
         accuracy: float
             Ratio of correctly predicted labels to the total number of predicted labels.
         """
+        #If predicted labels are not provided, it will compute them
         if predicted_labels is None:
             predicted_labels = self.get_predicted_labels(links=links, Pij=Pij, estimator=estimator, to_return="ids")
 
+        #If test labels are not provided, we get them from links
         if test_labels is None:
             if isinstance(links,pd.DataFrame):
                 if links.columns.isin([str(self.labels_name)+"_id"]).any():

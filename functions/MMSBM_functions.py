@@ -1,9 +1,13 @@
 import numpy as np
+
+
 try:
-    from numba_functions import *
+    from MMSBM_library.functions.numba_functions import *
     numba_imported = True
+    print("Numba imported")
 except ImportError:
     numba_imported = False
+    print("Numba not imported")
 
 # @jit(nopython=True,locals=dict(i=int64,j=int64,L=int64,K=int64,Na=int64,Nb=int64,suma=double))
 def omega_comp_arrays(Na,Nb,p_kl,theta,eta,K,L,links_array,links_ratings):
