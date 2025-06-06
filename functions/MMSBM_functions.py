@@ -275,8 +275,7 @@ def theta_meta(theta, meta):
 
 def log_like_comp(theta, eta, pkl, links, labels):
     """
-    Computes the log_likelihood given the membership matrices of two nodes layer (theta and eta), 
-    the matrix probabilities (pkl), and the links (links) with the labels (labels).
+    Computes the log_likelihood given the membership matrices of two nodes layer and its matrix probabilities.
 
     Parameters
     ----------
@@ -287,9 +286,9 @@ def log_like_comp(theta, eta, pkl, links, labels):
     pkl : np.array
         Probability matrix between groups
     links : np.array
-        Array containing the links
+        Array containing the indexes of the links
     labels : np.array
-        Array containing the labels for each link
+        Array containing the indexes of the labels for each link
 
     Returns
     -------
@@ -338,7 +337,7 @@ def log_like_comp_exclusive(theta, qka, links):
     qka : np.array
         Probability matrix between groups and attributes
     links : np.array
-        Array containing the links
+        Array containing the indexes of the links
 
     Returns
     -------
