@@ -76,6 +76,14 @@ class metadata_layer:
 
     @property
     def N_att(self):
+        """
+        Number of different categorical attributes of the metadata.
+
+        Returns
+        -------
+        int
+            Number of different categorical attributes
+        """
         return self._N_att
 
     @N_att.setter
@@ -93,18 +101,53 @@ class metadata_layer:
 
     @property
     def links(self):
+        """
+        Array representing links between nodes and metadata using its codes.
+
+        Returns
+        -------
+        np.array
+            2D array containing the links between nodes and metadata
+        """
         return self._links
 
     @links.setter
     def links(self, links):
+        """
+        Setter for the links property.
 
+        Parameters
+        ----------
+        links : np.array
+            2D array containing the links between nodes and metadata
+
+        Returns
+        -------
+        None
+        """
         self._links = links
         self.N_links = len(links)
 
     def __len__(self):
+        """
+        Returns the number of different categorical attributes.
+
+        Returns
+        -------
+        int
+            Number of different categorical attributes
+        """
         return self.N_att
 
     def __str__(self):
+        """
+        Returns the name of the metadata.
+
+        Returns
+        -------
+        str
+            Name of the metadata
+        """
         return self.meta_name
 
 
@@ -128,10 +171,30 @@ class exclusive_metadata(metadata_layer):
 
     @property
     def qka(self):
+        """
+        Probability matrix between groups and attributes.
+
+        Returns
+        -------
+        np.array
+            Matrix of probabilities between groups and attributes
+        """
         return self._qka
 
     @qka.setter
     def qka(self, qka):
+        """
+        Setter for the qka property.
+
+        Parameters
+        ----------
+        qka : np.array
+            Matrix of probabilities between groups and attributes
+
+        Returns
+        -------
+        None
+        """
         self._qka = qka
 
 
@@ -156,19 +219,53 @@ class inclusive_metadata(metadata_layer):
 
     @property
     def q_k_tau(self):
+        """
+        Probability matrix between groups, membership groups and attributes.
+
+        Returns
+        -------
+        np.array
+            Matrix of probabilities between groups, membership groups and attributes
+        """
         return self._q_k_tau
 
     @q_k_tau.setter
     def q_k_tau(self, q_k_tau):
         """
-        Setter of the q_k_tau matrix
+        Setter for the q_k_tau matrix.
+
+        Parameters
+        ----------
+        q_k_tau : np.array
+            Matrix of probabilities between groups, membership groups and attributes
+
+        Returns
+        -------
+        None
         """
-        self._q_k_tau =  q_k_tau
+        self._q_k_tau = q_k_tau
 
 
     def init_q_k_tau(self, K, Tau):
         """
-        Initialization of the q_k_tau matrix
+        Initialization of the q_k_tau matrix.
+
+        Parameters
+        ----------
+        K : int
+            Number of groups
+        Tau : int
+            Number of membership groups
+
+        Returns
+        -------
+        np.array
+            Initialized q_k_tau matrix of shape (K, Tau, N_att)
+
+        Raises
+        ------
+        ValueError
+            If K or Tau are not positive
         """
         if K <= 0: raise ValueError("Value of K must be positive!")
         if Tau <= 0: raise ValueError("Value of Tau must be positive!")
@@ -422,7 +519,42 @@ class nodes_layer:
         self.theta = init_P_matrix(self.N_nodes, K)
 
     def __len__(self):
-        return self.N_nodes
+        """
+        Returns the number of nodes in the layer.
+
+        Returns
+        -------
+        int
+            Number of nodes
+        """
+        return len(self.nodes)
+
+    def __iter__(self):
+        """
+        Returns an iterator over the nodes.
+
+        Returns
+        -------
+        iterator
+            Iterator over node IDs
+        """
+        return iter(self.nodes)
+
+    def __contains__(self, node_id):
+        """
+        Check if a node exists in the layer.
+
+        Parameters
+        ----------
+        node_id : int
+            Node identifier
+
+        Returns
+        -------
+        bool
+            True if the node exists, False otherwise
+        """
+        return node_id in self.nodes
 
     def add_exclusive_metadata(self, lambda_val, meta_name,*,dict_codes=None,**kwargs):
         '''
@@ -509,7 +641,6 @@ class nodes_layer:
 
         Tau: Int
             Number of membership groups of metadata
-
 
         separator: str, default: "|"
             Separator that is used to differentiate the different metadata assigned for each node
@@ -1847,3 +1978,183 @@ class BiNet:
         if not finished(self.omega_old,self.omega,tol):return False
 
         return True
+
+    def add_node(self, node_id, node_name=None):
+        """
+        Add a node to the layer.
+
+        Parameters
+        ----------
+        node_id : int
+            Unique identifier for the node
+        node_name : str, optional
+            Name of the node, defaults to None
+
+        Returns
+        -------
+        dict
+            The created node dictionary
+
+        Raises
+        ------
+        ValueError
+            If node_id already exists
+        """
+        if node_id in self.nodes:
+            raise ValueError(f"Node {node_id} already exists!")
+        self.nodes[node_id] = {"name": node_name}
+        return self.nodes[node_id]
+
+    def add_nodes_from_list(self, node_list):
+        """
+        Add multiple nodes from a list.
+
+        Parameters
+        ----------
+        node_list : list
+            List of node identifiers
+
+        Returns
+        -------
+        None
+        """
+        for node_id in node_list:
+            self.add_node(node_id)
+
+    def add_metadata_to_node(self, node_id, meta_name, meta_value):
+        """
+        Add metadata to a specific node.
+
+        Parameters
+        ----------
+        node_id : int
+            Node identifier
+        meta_name : str
+            Name of the metadata column
+        meta_value : any
+            Value of the metadata
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        KeyError
+            If node_id or meta_name doesn't exist
+        """
+        if node_id not in self.nodes:
+            raise KeyError(f"Node {node_id} doesn't exist!")
+        if meta_name not in self.metadata:
+            raise KeyError(f"Metadata {meta_name} doesn't exist!")
+        self.nodes[node_id][meta_name] = meta_value
+
+    def get_node_metadata(self, node_id, meta_name):
+        """
+        Get metadata value for a specific node.
+
+        Parameters
+        ----------
+        node_id : int
+            Node identifier
+        meta_name : str
+            Name of the metadata column
+
+        Returns
+        -------
+        any
+            The metadata value
+
+        Raises
+        ------
+        KeyError
+            If node_id or meta_name doesn't exist
+        """
+        if node_id not in self.nodes:
+            raise KeyError(f"Node {node_id} doesn't exist!")
+        if meta_name not in self.metadata:
+            raise KeyError(f"Metadata {meta_name} doesn't exist!")
+        return self.nodes[node_id].get(meta_name)
+
+    def get_all_nodes_metadata(self, meta_name):
+        """
+        Get metadata values for all nodes.
+
+        Parameters
+        ----------
+        meta_name : str
+            Name of the metadata column
+
+        Returns
+        -------
+        dict
+            Dictionary mapping node IDs to their metadata values
+
+        Raises
+        ------
+        KeyError
+            If meta_name doesn't exist
+        """
+        if meta_name not in self.metadata:
+            raise KeyError(f"Metadata {meta_name} doesn't exist!")
+        return {node_id: node_data.get(meta_name) for node_id, node_data in self.nodes.items()}
+
+    def remove_node(self, node_id):
+        """
+        Remove a node from the layer.
+
+        Parameters
+        ----------
+        node_id : int
+            Node identifier
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        KeyError
+            If node_id doesn't exist
+        """
+        if node_id not in self.nodes:
+            raise KeyError(f"Node {node_id} doesn't exist!")
+        del self.nodes[node_id]
+
+    def remove_metadata(self, meta_name):
+        """
+        Remove a metadata column from all nodes.
+
+        Parameters
+        ----------
+        meta_name : str
+            Name of the metadata column
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        KeyError
+            If meta_name doesn't exist
+        """
+        if meta_name not in self.metadata:
+            raise KeyError(f"Metadata {meta_name} doesn't exist!")
+        del self.metadata[meta_name]
+        for node_data in self.nodes.values():
+            if meta_name in node_data:
+                del node_data[meta_name]
+        self.N_meta -= 1
+
+    def clear(self):
+        """
+        Remove all nodes and metadata from the layer.
+
+        Returns
+        -------
+        None
+        """
+        self.nodes.clear()
+        self.metadata.clear()
+        self.N_meta = 0
