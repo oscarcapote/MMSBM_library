@@ -6,11 +6,14 @@
 Welcome to MMSBM_library's documentation!
 =========================================
 
+This library provides tools for working with Mixed Membership Stochastic Block Models (MMSBM).
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-
+   modules
+   api
 
 Indices and tables
 ==================

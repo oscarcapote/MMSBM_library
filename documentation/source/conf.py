@@ -14,8 +14,16 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+# Get the absolute path to the project root directory
+project_root = Path(__file__).resolve().parents[2]
+#sys.path.insert(0, str(project_root))
 
+
+sys.path.insert(0, os.path.abspath('../../../'))
+
+# Add the package directory to the path
+package_dir = project_root
+sys.path.insert(0, str(package_dir))
 
 # -- Project information -----------------------------------------------------
 
@@ -36,6 +44,12 @@ extensions = [
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
+    'sphinx.ext.todo',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',  # For Google-style docstrings
+    'sphinx.ext.viewcode',  # Add links to source code
+    'sphinx.ext.intersphinx',  # Link to other projects' documentation
+    'sphinx.ext.autosummary',  # Generate autodoc summaries
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -52,9 +66,32 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# Napoleon settings
+napoleon_google_docstring = True
+napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = True
+napoleon_include_private_with_doc = True
+napoleon_include_special_with_doc = True
+napoleon_use_admonition_for_examples = True
+napoleon_use_admonition_for_notes = True
+napoleon_use_admonition_for_references = True
+napoleon_use_ivar = True
+napoleon_use_param = True
+napoleon_use_rtype = True
+napoleon_type_aliases = None
+
+# Autodoc settings
+autodoc_default_options = {
+    'members': True,
+    'member-order': 'bysource',
+    'special-members': '__init__',
+    'undoc-members': True,
+    'exclude-members': '__weakref__'
+}
