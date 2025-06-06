@@ -41,8 +41,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Classes.html">Classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Functions.html">Functions</a></li>
 </ul>
 
         </div>
@@ -370,8 +370,7 @@
 <a class="viewcode-back" href="../../functions/MMSBM_functions.html#functions.MMSBM_functions.log_like_comp">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">log_like_comp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">eta</span><span class="p">,</span> <span class="n">pkl</span><span class="p">,</span> <span class="n">links</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Computes the log_likelihood given the membership matrices of two nodes layer (theta and eta), </span>
-<span class="sd">    the matrix probabilities (pkl), and the links (links) with the labels (labels).</span>
+<span class="sd">    Computes the log_likelihood given the membership matrices of two nodes layer and its matrix probabilities.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -382,9 +381,9 @@
 <span class="sd">    pkl : np.array</span>
 <span class="sd">        Probability matrix between groups</span>
 <span class="sd">    links : np.array</span>
-<span class="sd">        Array containing the links</span>
+<span class="sd">        Array containing the indexes of the links</span>
 <span class="sd">    labels : np.array</span>
-<span class="sd">        Array containing the labels for each link</span>
+<span class="sd">        Array containing the indexes of the labels for each link</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -439,7 +438,7 @@
 <span class="sd">    qka : np.array</span>
 <span class="sd">        Probability matrix between groups and attributes</span>
 <span class="sd">    links : np.array</span>
-<span class="sd">        Array containing the links</span>
+<span class="sd">        Array containing the indexes of the links</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>

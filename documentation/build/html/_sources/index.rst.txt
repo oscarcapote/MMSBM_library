@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to BiMMSBM's documentation!
-===================================
+Welcome to MMSBM_library's documentation!
+=========================================
 
 This library provides tools for working with Mixed Membership Stochastic Block Models (MMSBM).
 
@@ -12,8 +12,8 @@ This library provides tools for working with Mixed Membership Stochastic Block M
    :maxdepth: 2
    :caption: Contents:
 
-   modules
-   api
+   Classes
+   Functions
 
 Indices and tables
 ==================

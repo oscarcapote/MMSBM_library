@@ -1,12 +1,13 @@
-Modules
+Classes
 =======
 
-.. automodule:: __init__
+.. automodule:: MMSBM_library.core
    :members:
    :undoc-members:
    :show-inheritance:
 
+
 .. toctree::
    :maxdepth: 2
 
-   functions/index 
+   core/index 
