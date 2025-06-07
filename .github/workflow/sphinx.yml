@@ -11,6 +11,12 @@ jobs:
     - uses: actions/checkout@v4
       with:
         persist-credentials: false
+    - name: Install dependencies
+    run: |
+      pip install sphinx sphinx_rtd_theme myst_parser
+    - name: Sphinx build
+      run: |
+        sphinx-build doc _build
     - name: Build HTML
       uses: ammaraskar/sphinx-action@master
     - name: Upload artifacts
