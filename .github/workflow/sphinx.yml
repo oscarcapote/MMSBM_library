@@ -18,7 +18,7 @@ jobs:
       run: |
         sphinx-build doc _build
     - name: Build HTML
-      uses: ammaraskar/sphinx-action@master
+      uses: ammaraskar/sphinx-action@sphynx
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
