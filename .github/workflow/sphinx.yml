@@ -19,6 +19,10 @@ jobs:
         sphinx-build doc _build
     - name: Build HTML
       uses: ammaraskar/sphinx-action@sphynx
+      run: |
+        cd docs
+        make clean
+        make html
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
