@@ -1,0 +1,6 @@
+numpy
+# Recommended for performance optimization
+numba; python_version >= "3.7"
+scipy
+pandas
+matplotlib
