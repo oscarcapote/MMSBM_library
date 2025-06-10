@@ -7,7 +7,7 @@ Program to find the membership factors and the probabilities of connections in a
 # Requirements
 - pandas
 - numpy
-- numba (optional)
+- numba (optional but *highly reccommended*)
 
 # The link prediction problem and how we solve it
 
@@ -31,3 +31,5 @@ In this case we extend our problem to a link prediction problem in a multipartit
 
 To adapt the algorithm to any situation where metadata is totally, partially or no correlated, our approach incorporates an hyperparameter _lambda_ to each metadata that informs about the importance of the metadata when are used.
 ![lambdes](images/lambdes.png)
+
+You can read and run the ``Tutorial.ipynb``, see the example at ``Example.ipynb`` and read the documentation at [https://oscarcapote.github.io/MMSBM_library/index.html](https://oscarcapote.github.io/MMSBM_library/index.html).

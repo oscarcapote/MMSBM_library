@@ -8,9 +8,7 @@ setup(
     install_requires=[
         "numpy",
         "numba",
-        "scipy",
         "pandas",
-        "matplotlib",
     ],
     author="Oscar Fajardo Fontiveros",
     author_email="oscarcapote@hotmail.es",  # Replace with your email
