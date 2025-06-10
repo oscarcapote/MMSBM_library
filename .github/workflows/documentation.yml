@@ -18,7 +18,6 @@ jobs:
         run: |
           ls -ltr
           pwd
-          !sphinx-build docs/source docs/_build
           cd docs
           make html
           ls ./docs/build
