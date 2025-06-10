@@ -19,6 +19,7 @@ jobs:
           ls -ltr
           pwd
           sphinx-build docs/source docs/_build
+          ls ./docs/_build
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
