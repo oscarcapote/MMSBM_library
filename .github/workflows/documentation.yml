@@ -20,7 +20,6 @@ jobs:
           pwd
           cd docs
           make html
-          ls ./docs/build
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
