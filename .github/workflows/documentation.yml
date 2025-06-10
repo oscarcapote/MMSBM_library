@@ -18,12 +18,14 @@ jobs:
         run: |
           ls -ltr
           pwd
-          sphinx-build docs/source docs/_build
-          ls ./docs/_build
+          !sphinx-build docs/source docs/_build
+          cd docs
+          make html
+          ls ./docs/build
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/_build/
+          publish_dir:  ./docs/build
           force_orphan: true
