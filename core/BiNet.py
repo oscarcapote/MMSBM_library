@@ -531,7 +531,7 @@ class BiNet:
         layers: bool, default: True
             If True, it saves the nodes_layer objects in JSONs files in the same directory.
         '''
-        functions.utils.save_BiNet_dict(self, dir)
+        utils.save_BiNet_dict(self, dir)
 
         if layers:
             self.nodes_a.save_nodes_layer(dir)

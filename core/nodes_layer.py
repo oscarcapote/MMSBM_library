@@ -610,7 +610,7 @@ class nodes_layer:
             Directory where the json with the nodes_layer information will be saved
         '''
 
-        functions.utils.save_nodes_layer_dict(self, dir)
+        utils.save_nodes_layer_dict(self, dir)
 
     @classmethod
     def load_nodes_layer_from_file(cls, df, json_dir="."):
@@ -662,6 +662,8 @@ class nodes_layer:
 
     dict_codes : dict
         Dictionary with the integer id of the nodes. The key is the nodes' name and the value its id.
+    dict_decodes : dict
+        Dictionary with the integer id of the nodes. The key is the nodes' id and the value its name.
     meta_exclusives : list of metadata_layer
         List with the metadata exclusives objects that contains the metadata that will be used in the inference.
     meta_inclusives : list of metadata_layer
@@ -714,6 +716,8 @@ class nodes_layer:
         else:
             self._dict_codes = add_codes(self, nodes_name)
 
+        self._dict_decodes = {self._dict_codes[i]:i for i in self._dict_codes}
+
         self.nodes_list = self.df[nodes_name].unique()
 
         self.meta_exclusives = {}
@@ -738,6 +742,15 @@ class nodes_layer:
     def dict_codes(self,dc):
         self._dict_codes = dc
         return dc
+
+    @property
+    def dict_decodes(self):
+        return self._dict_decodes
+
+    @dict_decodes.setter
+    def dict_decodes(self,dd):
+        self._dict_decodes = dd
+        return dd
 
     def __getitem__(self, metadata_name):
         """
@@ -879,7 +892,7 @@ class nodes_layer:
         int
             Number of nodes
         """
-        return len(self.nodes)
+        return len(self.df)
 
     def __iter__(self):
         """
@@ -890,7 +903,7 @@ class nodes_layer:
         iterator
             Iterator over node IDs
         """
-        return iter(self.nodes)
+        return iter(self.df[self.node_type + "_id"])
 
     def __contains__(self, node_id):
         """
@@ -906,7 +919,7 @@ class nodes_layer:
         bool
             True if the node exists, False otherwise
         """
-        return node_id in self.nodes
+        return node_id in self.df[self.node_type + "_id"]
 
     def add_exclusive_metadata(self, lambda_val, meta_name, *, dict_codes=None, **kwargs):
         '''
@@ -1189,7 +1202,7 @@ class nodes_layer:
         dir: str
             Directory where the json with the nodes_layer information will be saved
         '''
-        functions.utils.save_nodes_layer_dict(self, dir)
+        utils.save_nodes_layer_dict(self, dir)
 
     @classmethod
     def load_nodes_layer_from_file(cls, df, json_dir="."):

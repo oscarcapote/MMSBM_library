@@ -73,6 +73,21 @@ html_theme = "sphinx_rtd_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# Copy images to _static directory
+import shutil
+import os
+
+# Create _static directory if it doesn't exist
+if not os.path.exists('_static'):
+    os.makedirs('_static')
+
+# Copy images from the images directory to _static
+images_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), '..', 'images')
+if os.path.exists(images_dir):
+    for img in os.listdir(images_dir):
+        if img.endswith(('.png', '.jpg', '.jpeg', '.gif')):
+            shutil.copy2(os.path.join(images_dir, img), os.path.join('_static', img))
+
 # Napoleon settings
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
