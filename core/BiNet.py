@@ -54,13 +54,13 @@ class BiNet:
     EM_step(N_steps=1)
         Performs N_steps steps of the EM algorithm.
 
-    get_loglikelihood()
+    get_log_likelihoods()
         Returns the loglikelihood of the current state of the MMSBM.
 
     get_links_probabilities(links=None)
         Returns the probability of each link in links.
 
-    get_predicted_links(links=None)
+    get_predicted_labels(links=None)
         Returns the predicted label of each link in links.
 
     get_accuracy(predicted_labels = None, test_labels = None, Pij = None,links = None, estimator = "max_probability")
@@ -770,7 +770,7 @@ class BiNet:
 
     def get_log_likelihoods(self):
         """
-        It computes the log_likelihoods from every bipartite network of the multipartite network
+        It computes the log_likelihoods from every bipartite network of the multipartite network, that means the log_likelihoods of the BiNet network and the log_likelihoods of the metadata networks.
         """
         na = self.nodes_a
 
