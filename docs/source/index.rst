@@ -1,14 +1,14 @@
-.. MMSBM_library documentation master file, created by
+.. BiMMSBM documentation master file, created by
    sphinx-quickstart on Tue Jun  3 15:20:46 2025.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-MMSBM_library
-============
+BiMMSBM
+=======
 
 |Python Version| |Documentation|
 
-A Python library for implementing Mixed-Membership Stochastic Block Models (MMSBM) with metadata integration for bipartite network analysis and link prediction.
+A Python library for implementing Bipartite Mixed-Membership Stochastic Block Models (BiMMSBM) with metadata integration for bipartite network analysis and link prediction.
 
 Overview
 --------
@@ -155,7 +155,7 @@ The importance of each metadata type is controlled by a hyperparameter.
 Documentation and Examples
 --------------------------
 
-- Download it in the `repository <https://github.com/oscarcapote/MMSBM_library>`_
+- Download it in the `repository <https://github.com/oscarcapote/BiMMSBM>`_
 - Tutorial: See `Tutorial.ipynb`
 
 References
@@ -192,4 +192,4 @@ Indices and tables
 .. |Python Version| image:: https://img.shields.io/badge/python-3.5%2B-blue.svg
    :target: https://www.python.org/downloads/
 .. |Documentation| image:: https://img.shields.io/badge/docs-latest-brightgreen.svg
-   :target: https://oscarcapote.github.io/MMSBM_library/index.html
+   :target: https://oscarcapote.github.io/BiMMSBM/index.html

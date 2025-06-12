@@ -1,7 +1,7 @@
 Classes
 =======
 
-.. automodule:: MMSBM_library.core
+.. automodule:: BiMMSBM.core
    :members:
    :undoc-members:
    :show-inheritance:

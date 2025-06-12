@@ -1,9 +1,9 @@
-# MMSBM_library
+# BiMMSBM
 
 [![Python Version](https://img.shields.io/badge/python-3.5%2B-blue.svg)](https://www.python.org/downloads/)
-[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://oscarcapote.github.io/MMSBM_library/index.html)
+[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://oscarcapote.github.io/BiMMSBM/index.html)
 
-A Python library for implementing Mixed-Membership Stochastic Block Models (MMSBM) with metadata integration for bipartite network analysis and link prediction.
+A Python library for implementing Bipartite Mixed-Membership Stochastic Block Models (BiMMSBM) with metadata integration for bipartite network analysis and link prediction.
 
 ## Overview
 
@@ -19,7 +19,7 @@ This library provides tools for finding membership factors and connection probab
 ## Installation
 
 ```bash
-pip install -r requirements.txt
+pip install BiMMSBM
 ```
 
 ## Requirements
@@ -30,6 +30,14 @@ pip install -r requirements.txt
   - numpy
 - Optional but recommended:
   - numba (for performance optimization)
+
+## Quick Start
+
+```python
+import BiMMSBM as sbm
+
+# Your code here
+```
 
 ## Usage
 
@@ -42,7 +50,7 @@ The library can be used for link prediction in bipartite complex networks where 
 
 ```python
 import pandas as pd
-import MMSBM_library as sbm
+import BiMMSBM as sbm
 
 # Create a sample dataset
 df_politicians = pd.DataFrame({
@@ -105,9 +113,9 @@ The importance of each metadata type is controlled by a hyperparameter:
 
 ![lambdes](images/lambdes.png)
 
-## Documentation and Examples
+## Documentation
 
-- Full documentation: [https://oscarcapote.github.io/MMSBM_library/index.html](https://oscarcapote.github.io/MMSBM_library/index.html)
+- Full documentation: [https://oscarcapote.github.io/BiMMSBM/index.html](https://oscarcapote.github.io/BiMMSBM/index.html)
 - Tutorial: See `Tutorial.ipynb`
 - Example usage: See `Example.ipynb`
 

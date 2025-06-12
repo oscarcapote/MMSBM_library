@@ -2,7 +2,7 @@ import numpy as np
 
 
 try:
-    from MMSBM_library.functions.numba_functions import *
+    from BiMMSBM.functions.numba_functions import *
     numba_imported = True
 except ImportError:
     numba_imported = False

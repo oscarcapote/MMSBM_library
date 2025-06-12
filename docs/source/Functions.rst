@@ -1,7 +1,7 @@
 Functions
 =========
 
-.. automodule:: MMSBM_library.functions
+.. automodule:: BiMMSBM.functions
    :members:
    :undoc-members:
    :show-inheritance:

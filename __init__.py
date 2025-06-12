@@ -3,9 +3,10 @@
 
 import pandas as pd
 import numpy as np
-from MMSBM_library.functions import *
+from BiMMSBM.functions import *
+from BiMMSBM.core import *
 
-# import MMSBM_library.functions.utils
+# import BiMMSBM.functions.utils
 
 from .core import metadata_layer, exclusive_metadata, inclusive_metadata, nodes_layer, BiNet
 

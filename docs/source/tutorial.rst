@@ -19,7 +19,8 @@ The best way to initialize a nodes_layer is from a pandas DataFrame:
     import numpy as np
     from numba import jit
     import sys, os
-    import MMSBM_library as sbm
+    import BiMMSBM as sbm
+    from BiMMSBM.functions.utils import save_MMSBM_parameters,add_codes,load_EM_parameters
 
     # Dataframe to use
     df_politicians = pd.DataFrame({
@@ -276,8 +277,8 @@ Two attributes that contain the information of the nodes are the ``nodes_a`` and
 
 .. code-block:: console
 
-    source <class 'MMSBM_library.nodes_layer'>
-    target <class 'MMSBM_library.nodes_layer'>
+    source <class 'BiMMSBM.nodes_layer'>
+    target <class 'BiMMSBM.nodes_layer'>
 
 An easier way to access these objects is by using the name of the layer:
 

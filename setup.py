@@ -1,14 +1,14 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="MMSBM_library",
-    version="0.1.0",
-    packages=find_packages(include=['MMSBM_library', 'MMSBM_library.*']),
-    package_dir={'MMSBM_library': '.'},
+    name="BiMMSBM",
+    version="0.1",
+    packages=find_packages(include=['BiMMSBM', 'BiMMSBM.*']),
+    package_dir={'BiMMSBM': '.'},
     install_requires=[
-        "numpy",
-        "numba",
-        "pandas",
+        'numpy',
+        'pandas',
+        'numba',
     ],
     author="Oscar Fajardo Fontiveros",
     author_email="oscarcapote@hotmail.es",  # Replace with your email

@@ -27,7 +27,7 @@ sys.path.insert(0, str(package_dir))
 
 # -- Project information -----------------------------------------------------
 
-project = 'MMSBM_library'
+project = 'BiMMSBM'
 copyright = '2025, Oscar Fajardo Fontiveros'
 author = 'Oscar Fajardo Fontiveros'
 
