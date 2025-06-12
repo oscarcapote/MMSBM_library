@@ -8,7 +8,7 @@ BiMMSBM
 
 |Python Version| |Documentation|
 
-A Python library for implementing Bipartite Mixed-Membership Stochastic Block Models (BiMMSBM) with metadata integration for bipartite network analysis and link prediction.
+A Python library for implementing Mixed-Membership Stochastic Block Models (MMSBM) with metadata integration for bipartite network analysis and link prediction.
 
 Overview
 --------
