@@ -16,10 +16,10 @@ This library provides tools for finding membership factors and connection probab
 - Adaptive metadata importance through hyperparameters
 - High-performance implementation with optional Numba acceleration
 
-## Installation
+## Installation of requirements
 
 ```bash
-pip install BiMMSBM
+pip install -r requirements.txt
 ```
 
 ## Requirements
@@ -28,16 +28,9 @@ pip install BiMMSBM
 - Required packages:
   - pandas
   - numpy
-- Optional but recommended:
+- Optional but highly recommended:
   - numba (for performance optimization)
 
-## Quick Start
-
-```python
-import BiMMSBM as sbm
-
-# Your code here
-```
 
 ## Usage
 
