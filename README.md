@@ -119,9 +119,9 @@ The importance of each metadata type is controlled by a hyperparameter:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
-The MIT License is a permissive license that is short and to the point. It lets people do anything they want with your code as long as they provide attribution back to you and don't hold you liable.
+The GNU GPL is a free, copyleft license that ensures the software remains free and open source. It requires that any derivative works must also be distributed under the same license terms.
 
 ## Author
 
