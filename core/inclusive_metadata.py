@@ -9,19 +9,42 @@ class inclusive_metadata(metadata_layer):
     inclusive metadata, where each node can have multiple attributes from a set
     of possible attributes.
 
-    Parameters
+    Attributes
     ----------
     lambda_val : float
         Metadata visibility parameter
     meta_name : str
         Name of the metadata column in the node_layer class
+    N_att : int
+        Number of different categorical attributes of the metadata.
+    dict_codes : dict
+        A dictionary to store codes related to the metadata.
+        Codes are integers ranged from 0 to N_att-1.
+    links : 2D NumPy array
+        Array representing links between nodes and metadata using its codes.
     Tau : int
         Number of membership groups of this metadata
-
-    Attributes
-    ----------
     q_k_tau : np.array
         Probability matrix between groups, membership groups and attributes
+    neighbours_meta : list
+        List where the index is the attribute and the element is an array of the nodes that are connected to the same attribute.
+    masks_att_list : list
+        List of arrays of ints where the array number att has all the index positions of links that connects the attribute att
+    labels : np.array
+        Array of labels of the links: 0 if not connected 1 if connected
+    masks_label_list : list
+        masks list to know wich links have label r (that is the index of the list).
+
+    Methods
+    -------
+    init_q_k_tau(K, Tau)
+        Initialization of the q_k_tau matrix.
+    code_inclusive_metadata(meta_row)
+        Code the inclusive metadata that is a string of metadata separated by inclusive_metadata._separator.
+    __len__()
+        Returns the number of different categorical attributes.
+    __str__()
+        Returns the name of the metadata.
     """
     def __init__(self, lambda_val, meta_name, Tau):
         """

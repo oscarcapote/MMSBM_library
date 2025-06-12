@@ -37,16 +37,22 @@ class nodes_layer:
 
     dict_codes : dict
         Dictionary with the integer id of the nodes. The key is the nodes' name and the value its id.
+    
     dict_decodes : dict
         Dictionary with the integer id of the nodes. The key is the nodes' id and the value its name.
+    
     meta_exclusives : list of metadata_layer
         List with the metadata exclusives objects that contains the metadata that will be used in the inference.
+    
     meta_inclusives : list of metadata_layer
         List with the metadata inclusives object that contains the metadata that will be used in the inference.
+    
     meta_neighbours_exclusives :
         Dictionaries of lists that contains, for each node its exclusives metadata neighbours.
+    
     meta_neighbours_inclusives :
         Dictionaries of lists that contains, for each node its inclusives metadata neighbours.
+    
     nodes_observed_inclusive :
         List of arrays for each metadata with the nodes that has assigned an attribute of the metadata
     """
@@ -446,6 +452,7 @@ class nodes_layer:
 
         decodes = {codes[i]:i for i in codes}
         im.decodes = decodes
+        im.dict_decodes = im.decodes
         im.N_att = len(set(codes))
 
         # Add the new column with metadata IDs
