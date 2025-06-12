@@ -1,0 +1,32 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: BiMMSBM
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Oscar
+    family-names: Fajardo Fontiveros
+    email: oscarcapote@hotmail.es
+    orcid: 'https://orcid.org/0000-0002-0705-8972'
+identifiers:
+  - type: url
+    value: 'https://github.com/oscarcapote/BiMMSBM'
+    description: Repository of the library
+repository-code: 'https://github.com/oscarcapote/BiMMSBM'
+url: 'https://oscarcapote.github.io/BiMMSBM/'
+abstract: >-
+  This library computes the parameters of a Mixed Membership
+  Stochastic Block model in a bipartite network
+keywords:
+  - Complex Networks
+  - Networks
+  - Bayesian Inference
+  - Block Models
+  - Stochastick Block Model
+license: GPL-3.0
+version: '1.0'
+date-released: '2025-06-12'
