@@ -3,7 +3,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.5%2B-blue.svg)](https://www.python.org/downloads/)
 [![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://oscarcapote.github.io/BiMMSBM/index.html)
 
-A Python library for implementing Bipartite Mixed-Membership Stochastic Block Models (BiMMSBM) with metadata integration for bipartite network analysis and link prediction.
+A Python library for implementing Mixed-Membership Stochastic Block Models (MMSBM) with metadata integration for bipartite network analysis and link prediction.
 
 ## Overview
 
@@ -16,10 +16,10 @@ This library provides tools for finding membership factors and connection probab
 - Adaptive metadata importance through hyperparameters
 - High-performance implementation with optional Numba acceleration
 
-## Installation
+## Installation of requirements
 
 ```bash
-pip install BiMMSBM
+pip install -r requirements.txt
 ```
 
 ## Requirements
@@ -28,16 +28,9 @@ pip install BiMMSBM
 - Required packages:
   - pandas
   - numpy
-- Optional but recommended:
+- Optional but highly recommended:
   - numba (for performance optimization)
 
-## Quick Start
-
-```python
-import BiMMSBM as sbm
-
-# Your code here
-```
 
 ## Usage
 
