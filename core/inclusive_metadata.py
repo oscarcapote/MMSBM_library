@@ -92,3 +92,23 @@ class inclusive_metadata(metadata_layer):
         if Tau <= 0: raise ValueError("Value of Tau must be positive!")
         self._q_k_tau = np.random.rand(K, self.Tau, self.N_att)
         return self._q_k_tau 
+    
+    def code_inclusive_metadata(self, meta_row):
+       """
+       Code the inclusive metadata that is a string of metadata separated by inclusive_metadata._separator.
+
+       Parameters
+       ----------
+       meta_row : str
+           String of metadata separated by inclusive_metadata._separator
+
+       Returns
+       -------
+       str
+           String of metadata ids separated by inclusive_metadata._separator
+       """
+       meta_list = meta_row.split(self._separator)
+       #print(meta_list)
+       meta_list_ids = [str(self.dict_codes[meta]) for meta in meta_list]
+       #print(meta_list_ids)
+       return self._separator.join(meta_list_ids)

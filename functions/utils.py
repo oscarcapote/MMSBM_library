@@ -21,7 +21,47 @@ def init_P_matrix(*shape):
     S = P.sum(axis = len(shape)-1)
     return P/S.reshape((*shape[:-1],-1))
 
+# Function to convert DataFrame to RST table
+def df_to_rst_table(df, title=None):
+    """
+    Converts a pandas DataFrame to a RST table format.
 
+    Parameters:
+    -----------
+    df: pandas.DataFrame
+        The DataFrame to convert to a table.
+
+    title: str, default: None
+        The title of the table.
+
+    Returns:
+    -------
+    A string with the RST table format.
+
+    """
+    # Get column names and calculate column widths
+    columns = df.columns
+    col_widths = [max(len(str(col)), df[col].astype(str).str.len().max()) for col in columns]
+    
+    # Create the table header
+    header = '+' + '+'.join('-' * (width + 2) for width in col_widths) + '+'
+    separator = '+' + '+'.join('=' * (width + 2) for width in col_widths) + '+'
+    col_names = '|' + '|'.join(f' {col:{width}} ' for col, width in zip(columns, col_widths)) + '|'
+    
+    # Create the table rows
+    rows = []
+    for _, row in df.iterrows():
+        row_str = '|' + '|'.join(f' {str(val):{width}} ' for val, width in zip(row, col_widths)) + '|'
+        row_separator = '+' + '+'.join('-' * (width + 2) for width in col_widths) + '+'
+        rows.append(row_str + "\n" + row_separator)
+    
+    # Combine all parts
+    table = [header, col_names, separator] + rows 
+    
+    # Add title if provided
+    if title:
+        return f"\n{title}\n\n" + '\n'.join(table)
+    return '\n'.join(table)
 
 
 def add_codes(layer,col_name):

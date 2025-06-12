@@ -63,6 +63,34 @@ Basic Example
        "Movies_preferences": ["Action|Drama", "Belic", "Belic|Comedy", "Comedy|Drama"]
    })
 
+   # Function to convert DataFrame to RST table
+   def df_to_rst_table(df, title=None):
+       # Get column names and calculate column widths
+       columns = df.columns
+       col_widths = [max(len(str(col)), df[col].astype(str).str.len().max()) for col in columns]
+       
+       # Create the table header
+       header = '+' + '+'.join('-' * (width + 2) for width in col_widths) + '+'
+       separator = '+' + '+'.join('=' * (width + 2) for width in col_widths) + '+'
+       col_names = '|' + '|'.join(f' {col:{width}} ' for col, width in zip(columns, col_widths)) + '|'
+       
+       # Create the table rows
+       rows = []
+       for _, row in df.iterrows():
+           row_str = '|' + '|'.join(f' {str(val):{width}} ' for val, width in zip(row, col_widths)) + '|'
+           rows.append(row_str)
+       
+       # Combine all parts
+       table = [header, col_names, separator] + rows + [header]
+       
+       # Add title if provided
+       if title:
+           return f"\n{title}\n\n" + '\n'.join(table)
+       return '\n'.join(table)
+
+   # Display the DataFrame as RST table
+   print(df_to_rst_table(df_politicians, "Sample Politicians Dataset"))
+
    # Initialize nodes layer with 9 groups
    politicians = sbm.nodes_layer(9, "legislator", df_politicians)
 
@@ -74,6 +102,21 @@ Basic Example
    lambda_movies = 0.3
    Tau_movies = 6
    movies = politicians.add_inclusive_metadata(lambda_movies, "Movies_preferences", Tau_movies)
+
+   # Create a new column with movie genre IDs
+   def get_genre_ids(preferences, dict_codes):
+       # Split the preferences string and map each genre to its ID
+       genres = preferences.split('|')
+       genre_ids = [str(dict_codes[genre]) for genre in genres]
+       return '|'.join(genre_ids)
+
+   # Add the new column with genre IDs
+   politicians.df['Movies_preferences_id'] = politicians.df['Movies_preferences'].apply(
+       lambda x: get_genre_ids(x, movies.dict_codes)
+   )
+
+   # Display the updated DataFrame
+   print(df_to_rst_table(politicians.df, "Politicians Dataset with Genre IDs"))
 
 How It Works
 ------------

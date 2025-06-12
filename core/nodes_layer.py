@@ -95,6 +95,8 @@ class nodes_layer:
         else:
             self._dict_codes = add_codes(self, nodes_name)
 
+        self.dict_decodes = {v: k for k, v in self.dict_codes.items()}
+
 
         self.nodes_list = self.df[nodes_name].unique()
 
@@ -446,6 +448,11 @@ class nodes_layer:
         im.decodes = decodes
         im.N_att = len(set(codes))
 
+        # Add the new column with metadata IDs
+        self.df[str(im) + '_id'] = self.df[str(im)].apply(
+            lambda x: im.code_inclusive_metadata(x)
+        )
+
         meta_neighbours = [[im.dict_codes[i] for i in L] for L in meta_neighbours]
 
         # Links between node and metadata type
@@ -538,10 +545,13 @@ class nodes_layer:
         Changes the ids (the integer assigned to each metadata attribute) given the dict_codes.
 
         Parameters
-        -----------
+        ----------
+        im: inclusive_metadata
+            inclusive_metadata object to update the ids
 
-        dict_codes: dict Dictionary where the keys are the names of metadata's type, and the values are the ids.
-                    If None, ids will be generated automatically.
+        dict_codes: dict
+            Dictionary where the keys are the names of metadata's type, and the values are the ids.
+            If None, ids will be generated automatically.
         '''
         observed = self.nodes_observed_inclusive[str(im)]
         meta_neighbours = []

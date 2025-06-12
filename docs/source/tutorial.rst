@@ -35,7 +35,33 @@ The best way to initialize a nodes_layer is from a pandas DataFrame:
 
 Once the object is initialized, you can access the dataframe from the `df` attribute, but now it will contain a new column with an integer id that the library will use in the future. The name of the column is the same as the column of the names, but finished in `_id`.
 
-The assignment of the ids with the names of the nodes is in the `dict_codes` attribute. This id represents the array position that corresponds to each node for the `theta` and `omega` matrices.
+.. code-block:: python
+
+    display(politicians.df)
+
++------------+-------+--------------------+---------------+
+| legislator | Party | Movies_preferences | legislator_id |
++============+=======+====================+===============+
+| Pedro      | PSOE  | Action|Drama       | 1             |
++------------+-------+--------------------+---------------+
+| Santiago   | VOX   | Belic              | 2             |
++------------+-------+--------------------+---------------+
+| Alberto    | PP    | Belic|Comedy       | 0             |
++------------+-------+--------------------+---------------+
+| Yolanda    | Sumar | Comedy|Drama       | 3             |
++------------+-------+--------------------+---------------+
+
+
+
+The assignment of the ids with the names of the nodes is in the `dict_codes` attribute and the inverse in the `dict_decodes` attribute. This ids represents the array position that corresponds to each node for the `theta` and `omega` matrices.
+
+.. code-block:: python
+    print(politicians.dict_codes)
+    print(politicians.dict_decodes)
+
+.. code-block:: console
+    {'Pedro': 1, 'Santiago': 2, 'Alberto': 0, 'Yolanda': 3}
+    {1: 'Pedro', 2: 'Santiago', 0: 'Alberto', 3: 'Yolanda'}
 
 You can modify whenever you want the number of groups from the ``K`` attribute:
 
@@ -45,13 +71,13 @@ You can modify whenever you want the number of groups from the ``K`` attribute:
     politicians.K = 2
     print(f"Number of groups of politicians: {politicians.K}")
 
-.. output::
+.. code-block:: console
 
     Number of groups of politicians: 9
     Number of groups of politicians: 2
 
 Adding Metadata
---------------
+---------------
 
 When in your dataframe you have extra information about the nodes, you have to tell which columns are metadata and which type of metadata. There are two types of metadata:
 
@@ -59,7 +85,7 @@ When in your dataframe you have extra information about the nodes, you have to t
 * **Inclusive metadata**: These are metadata where each node can have assigned more than one attribute. For example the genre of a movie, one movie can belong to different genres at the same time.
 
 Exclusive Metadata
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 Once the `nodes_layer` is initialized, you can add the metadata using the `add_exclusive_metadata` method that will return an `exclusive_metadata` class:
 
@@ -79,17 +105,42 @@ The value of `lambda_party` is how important the metadata will be while the infe
     parties.lambda_val = 2.3
     print(f"Importance of political parties: {parties.lambda_val}")
 
-.. output::
+.. code-block:: console
 
     Importance of political parties: 100
     Importance of political parties: 2.3
 
 When the metadata has been added to the `nodes_layer` object, its dataframe will add a new column with the ids of the metadata with the same column name but finished in `_id`.
 
+.. code-block:: python
+
+    display(politicians.df)
+
++------------+-------+--------------------+---------------+----------+
+| legislator | Party | Movies_preferences | legislator_id | Party_id |
++============+=======+====================+===============+==========+
+| Pedro      | PSOE  | Action|Drama       | 1             | 1        |
++------------+-------+--------------------+---------------+----------+
+| Santiago   | VOX   | Belic              | 2             | 3        |
++------------+-------+--------------------+---------------+----------+
+| Alberto    | PP    | Belic|Comedy       | 0             | 0        |
++------------+-------+--------------------+---------------+----------+
+| Yolanda    | Sumar | Comedy|Drama       | 3             | 2        |
++------------+-------+--------------------+---------------+----------+
+
 Similarly to the `nodes_layer`, you can access the metadata ids through the `dict_codes` attribute.
 
+.. code-block:: python
+
+    print(parties.dict_codes)
+
+.. code-block:: console
+
+    {'PSOE': 1, 'VOX': 3, 'PP': 0, 'Sumar': 2}
+
+
 Inclusive Metadata
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 Once the `nodes_layer` is initialized, you can add the metadata using the `add_inclusive_metadata` method that will return an `inclusive_metadata` class:
 
@@ -111,7 +162,7 @@ The value of `lambda_movies` is how important the metadata will be while the inf
     movies.lambda_val = 20
     print(f"Importance of politicians movies preferences: {movies.lambda_val}")
 
-.. output::
+.. code-block:: console
 
     Importance of politicians movies preferences: 0.3
     Importance of politicians movies preferences: 20
@@ -124,12 +175,28 @@ The value of `Tau_movies` is the number of groups which the metadata will be gro
     movies.Tau = 3
     print(f"Number of groups of politicians: {movies.Tau}")
 
-.. output::
+.. code-block:: console
 
     Number of groups of politicians: 6
     Number of groups of politicians: 3
 
 When the metadata has been added to the `nodes_layer` object, its dataframe will add a new column with the ids of the metadata with the same column name but finished in `_id`.
+
+.. code-block:: python
+
+    display(politicians.df)
+
++------------+-------+--------------------+---------------+----------+-----------------------+
+| legislator | Party | Movies_preferences | legislator_id | Party_id | Movies_preferences_id |
++============+=======+====================+===============+==========+=======================+
+| Pedro      | PSOE  | Action|Drama       | 1             | 1        | 2|3                   |
++------------+-------+--------------------+---------------+----------+-----------------------+
+| Santiago   | VOX   | Belic              | 2             | 3        | 0                     |
++------------+-------+--------------------+---------------+----------+-----------------------+
+| Alberto    | PP    | Belic|Comedy       | 0             | 0        | 0|1                   |
++------------+-------+--------------------+---------------+----------+-----------------------+
+| Yolanda    | Sumar | Comedy|Drama       | 3             | 2        | 1|3                   |
++------------+-------+--------------------+---------------+----------+-----------------------+
 
 Similarly to the `nodes_layer`, you can access the metadata ids through the `dict_codes` attribute. 
 
@@ -171,6 +238,32 @@ Notice that you need to specify which columns represent nodes and which is the c
 
 Once the object is initialized, you can access the dataframe from the ``df`` attribute, but now it will contain three new columns, one for each node type and another for the labels, with an integer id that the library will use in the future. The name of the column is the same as the column of the names, but finished in ``_id``.
 
+.. code-block:: python
+
+    display(BiNet.df)
+
++--------+--------+----------+-----------+-----------+-----------+
+| source | target | labels   | labels_id | source_id | target_id |
++========+========+==========+===========+===========+===========+
+| 0      | A      | positive | 1         | 0         | 0         |
++--------+--------+----------+-----------+-----------+-----------+
+| 0      | B      | negative | 0         | 0         | 1         |
++--------+--------+----------+-----------+-----------+-----------+
+| 0      | C      | positive | 1         | 0         | 2         |
++--------+--------+----------+-----------+-----------+-----------+
+| 1      | A      | positive | 1         | 1         | 0         |
++--------+--------+----------+-----------+-----------+-----------+
+| 1      | B      | negative | 0         | 1         | 1         |
++--------+--------+----------+-----------+-----------+-----------+
+| 1      | C      | positive | 1         | 1         | 2         |
++--------+--------+----------+-----------+-----------+-----------+
+| 2      | A      | negative | 0         | 2         | 0         |
++--------+--------+----------+-----------+-----------+-----------+
+| 2      | B      | negative | 0         | 2         | 1         |
++--------+--------+----------+-----------+-----------+-----------+
+| 2      | C      | positive | 1         | 2         | 2         |
++--------+--------+----------+-----------+-----------+-----------+
+
 Accessing the ``nodes_layer`` Objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -181,7 +274,7 @@ Two attributes that contain the information of the nodes are the ``nodes_a`` and
     print(BiNet.nodes_a, type(BiNet.nodes_a))
     print(BiNet.nodes_b, type(BiNet.nodes_b))
 
-.. output::
+.. code-block:: console
 
     source <class 'MMSBM_library.nodes_layer'>
     target <class 'MMSBM_library.nodes_layer'>
@@ -190,15 +283,43 @@ An easier way to access these objects is by using the name of the layer:
 
 .. code-block:: python
 
-    BiNet["source"] == BiNet.nodes_a
-    BiNet["target"] == BiNet.nodes_b
+    print(BiNet["source"] == BiNet.nodes_a)
+    print(BiNet["target"] == BiNet.nodes_b)
+
+.. code-block:: console
+
+    True
+    True
 
 As before, you can access a dataframe with the ``df`` method. Also, it will contain an extra column with the ids.
 
 .. code-block:: python
 
-    BiNet["source"].df
-    BiNet["target"].df
+    display(BiNet["source"].df)
+
++--------+-----------+
+| source | source_id |
++========+===========+
+| 0      | 0         |
++--------+-----------+
+| 1      | 1         |
++--------+-----------+
+| 2      | 2         |
++--------+-----------+
+
+.. code-block:: python
+    display(BiNet["target"].df)
+
++--------+-----------+
+| target | target_id |
++========+===========+
+| A      | 0         |
++--------+-----------+
+| B      | 1         |
++--------+-----------+
+| C      | 2         |
++--------+-----------+
+
 
 Using ``nodes_layer`` Objects to Initialize a ``BiNet`` Object
 -------------------------------------------------------------
@@ -265,6 +386,58 @@ If you display the dataframe of the ``BiNet`` and the ``nodes_layer`` objects, t
     display(votes["legislator"].df[["legislator","legislator_id"]])
     display(votes["bill"].df[["bill","bill_id"]])
 
++------------+---------------+------+---------+
+| legislator | legislator_id | bill | bill_id |
++============+===============+======+=========+
+| Pedro      | 1             | A    | 0       |
++------------+---------------+------+---------+
+| Pedro      | 1             | B    | 1       |
++------------+---------------+------+---------+
+| Pedro      | 1             | D    | 3       |
++------------+---------------+------+---------+
+| Santiago   | 2             | A    | 0       |
++------------+---------------+------+---------+
+| Santiago   | 2             | C    | 2       |
++------------+---------------+------+---------+
+| Santiago   | 2             | D    | 3       |
++------------+---------------+------+---------+
+| Alberto    | 0             | A    | 0       |
++------------+---------------+------+---------+
+| Alberto    | 0             | B    | 1       |
++------------+---------------+------+---------+
+| Alberto    | 0             | C    | 2       |
++------------+---------------+------+---------+
+| Yolanda    | 3             | B    | 1       |
++------------+---------------+------+---------+
+| Yolanda    | 3             | C    | 2       |
++------------+---------------+------+---------+
+| Yolanda    | 3             | D    | 3       |
++------------+---------------+------+---------+
+
++------------+---------------+
+| legislator | legislator_id |
++============+===============+
+| Pedro      | 1             |
++------------+---------------+
+| Santiago   | 2             |
++------------+---------------+
+| Alberto    | 0             |
++------------+---------------+
+| Yolanda    | 3             |
++------------+---------------+
+
++------+---------+
+| bill | bill_id |
++======+=========+
+| A    | 0       |
++------+---------+
+| B    | 1       |
++------+---------+
+| D    | 3       |
++------+---------+
+| C    | 2       |
++------+---------+
+
 The Expectation Maximization (EM) algorithm
 -------------------------------------------
 
@@ -279,7 +452,105 @@ Once the EM has been initialized, the parameters will be stored in attributes. F
 .. code-block:: python
 
     votes["legislator"].theta
+
+.. code-block:: console
+
+    array([[0.39067672, 0.60932328],
+           [0.51318295, 0.48681705],
+           [0.23656348, 0.76343652],
+           [0.8699203 , 0.1300797 ]])
+
+
+.. code-block:: python
+    
     votes["bill"].theta 
+
+
+.. code-block:: console
+
+    array([[0.33855864, 0.66144136],
+           [0.10264972, 0.89735028],
+           [0.33213194, 0.66786806],
+           [0.43570408, 0.56429592]])
+
+The first index corresponds to the id of the node, the second correspond to the group number.
+
+For the ``BiNet`` object, the probabilities matrix and the expectation parameters will be stored in the ``pkl`` and ``omega`` attributes respectivly.
+
+.. code-block:: python
+
+    votes.pkl
+
+.. code-block:: console
+
+    array([[[0.73640347, 0.26359653],
+            [0.66204141, 0.33795859]],
+
+           [[0.61438835, 0.38561165],
+            [0.7342769 , 0.2657231 ]]])
+
+
+The first and second index corresponds to the groups from `nodes_a` and `nodes_b` respectively. The third correspond to the label id.
+
+.. code-block:: python
+
+    votes.omega
+
+
+.. code-block:: console
+    
+    array([[[[0.14143346, 0.19831325],
+            [0.23053494, 0.42971834]],
+
+            [[0.14403937, 0.17518567],
+            [0.41166991, 0.26910505]],
+
+            [[0.08461626, 0.24549825],
+            [0.13792355, 0.53196193]],
+
+            [[0.        , 0.        ],
+            [0.        , 0.        ]]],
+
+
+          [[[0.04293584, 0.06020319],
+            [0.31314921, 0.58371176]],
+
+           [[0.05742163, 0.04897093],
+            [0.4188002 , 0.47480724]],
+
+           [[0.        , 0.        ],
+            [0.        , 0.        ]],
+
+           [[0.06536891, 0.01253214],
+            [0.83596087, 0.08613808]]],
+
+
+         [[[0.10985576, 0.21967309],
+            [0.32315681, 0.34731435]],
+
+          [[0.        , 0.        ],
+            [0.        , 0.        ]],
+
+          [[0.0683947 , 0.28299025],
+            [0.20119303, 0.44742201]],
+
+          [[0.32134512, 0.04319874],
+            [0.53911187, 0.09634426]]],
+
+
+         [[[0.        , 0.        ],
+            [0.        , 0.        ]],
+
+          [[0.24047583, 0.2050852 ],
+            [0.2598447 , 0.29459428]],
+
+          [[0.08892354, 0.36793049],
+            [0.16847772, 0.37466824]],
+
+          [[0.41526893, 0.05582501],
+            [0.44871632, 0.08018974]]]])
+
+The first and second index corresponds to the nodes id from `nodes_a` and `nodes_b` respectively. The second and third index corresponds to the groups from `nodes_a` and `nodes_b` respectively.
 
 Running the EM Algorithm and Checking Convergence
 ------------------------------------------------
@@ -298,7 +569,7 @@ To run the EM algorithm, you have to use the ``EM_step`` method. It will make an
         if converges:
             break
 
-.. output::
+.. code-block:: console
 
     Iteration 0: False
     Iteration 5: False
@@ -333,7 +604,7 @@ This parameter can be a list of the links ids that you want to use as a training
         if converges:
             break
 
-.. output::
+.. code-block:: console
 
     Iteration 0: converges? False
     Iteration 5: converges? False
@@ -357,7 +628,7 @@ Once the EM algorithm has converged, you can get the predictions using the ``get
     votes.get_predicted_labels(links=df_test)
 
 Checking the Accuracy
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 You can check the accuracy of the predictions using the ``get_accuracy`` method. By default, it will compute the accuracy of the training set. You can specify the test set with the ``links`` parameter, by using a list of the links ids or another dataframe with other links.
 
@@ -367,7 +638,7 @@ You can check the accuracy of the predictions using the ``get_accuracy`` method.
     print(f"Accuracy of the training set: {votes.get_accuracy()}")
     print(f"Accuracy of the test set: {votes.get_accuracy(links=df_test)}")
 
-.. output::
+.. code-block:: console
 
     Accuracy of the training set: 0.8888888888888888
     Accuracy of the test set: 0.0
