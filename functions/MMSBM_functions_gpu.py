@@ -1,8 +1,24 @@
 import torch
 import numpy as np
+from functools import lru_cache
 
-def to_tensor(x, device='cuda'):
-    """Convert numpy array to torch tensor and move to specified device."""
+# Cache for tensor conversions to avoid repeated conversions
+@lru_cache(maxsize=128)
+def to_tensor_cached(x, device='cuda'):
+    """Cached version of tensor conversion for immutable inputs."""
+    if isinstance(x, np.ndarray):
+        return torch.from_numpy(x).to(device)
+    elif isinstance(x, torch.Tensor):
+        return x.to(device)
+    return x
+
+def to_tensor(x, device='cuda', cache=True):
+    """
+    Convert numpy array to torch tensor and move to specified device.
+    Uses caching for immutable inputs to avoid repeated conversions.
+    """
+    if cache and isinstance(x, (np.ndarray, torch.Tensor)):
+        return to_tensor_cached(x, device)
     if isinstance(x, np.ndarray):
         return torch.from_numpy(x).to(device)
     elif isinstance(x, torch.Tensor):
@@ -15,19 +31,42 @@ def to_numpy(x):
         return x.cpu().numpy()
     return x
 
+class TensorCache:
+    """Class to manage tensor caching for mutable objects."""
+    def __init__(self, device='cuda'):
+        self.device = device
+        self.cache = {}
+    
+    def get_tensor(self, key, data):
+        """Get tensor from cache or create new one."""
+        if key not in self.cache:
+            self.cache[key] = to_tensor(data, self.device, cache=False)
+        return self.cache[key]
+    
+    def update_tensor(self, key, data):
+        """Update tensor in cache."""
+        self.cache[key] = to_tensor(data, self.device, cache=False)
+    
+    def clear(self):
+        """Clear the cache."""
+        self.cache.clear()
+
+# Create a global cache instance
+tensor_cache = TensorCache()
+
 def omega_comp_arrays(Na, Nb, p_kl, theta, eta, K, L, links_array, links_ratings, device='cuda'):
     """
     GPU-accelerated version of omega_comp_arrays using PyTorch.
     """
-    # Convert inputs to tensors
-    p_kl = to_tensor(p_kl, device)
-    theta = to_tensor(theta, device)
-    eta = to_tensor(eta, device)
-    links_array = to_tensor(links_array, device)
-    links_ratings = to_tensor(links_ratings, device)
+    # Use cached tensors where possible
+    p_kl = tensor_cache.get_tensor('p_kl', p_kl)
+    theta = tensor_cache.get_tensor('theta', theta)
+    eta = tensor_cache.get_tensor('eta', eta)
+    links_array = tensor_cache.get_tensor('links_array', links_array)
+    links_ratings = tensor_cache.get_tensor('links_ratings', links_ratings)
     
     # Initialize omega tensor
-    omega = torch.zeros((Na, Nb, K, L), device=device)
+    omega = torch.empty((Na, Nb, K, L), device=device, dtype=p_kl.dtype)
     
     # Process links in batches for better GPU utilization
     batch_size = 1024
@@ -53,13 +92,13 @@ def omega_comp_arrays_exclusive(q_ka, N_att, theta, N_nodes, K, metas_links_arra
     """
     GPU-accelerated version of omega_comp_arrays_exclusive using PyTorch.
     """
-    # Convert inputs to tensors
-    q_ka = to_tensor(q_ka, device)
-    theta = to_tensor(theta, device)
-    metas_links_arrays_nodes = to_tensor(metas_links_arrays_nodes, device)
+    # Use cached tensors where possible
+    q_ka = tensor_cache.get_tensor('q_ka', q_ka)
+    theta = tensor_cache.get_tensor('theta', theta)
+    metas_links_arrays_nodes = tensor_cache.get_tensor('metas_links', metas_links_arrays_nodes)
     
     # Initialize omega tensor
-    omega = torch.zeros((N_nodes, N_att, K), device=device)
+    omega = torch.empty((N_nodes, N_att, K), device=device, dtype=q_ka.dtype)
     
     # Process links in batches
     batch_size = 1024
@@ -86,20 +125,20 @@ def theta_comp_arrays_multilayer(BiNet, layer="a", device='cuda'):
     """
     if layer == "a":
         na = BiNet.nodes_a
-        observed = to_tensor(BiNet.observed_nodes_a, device)
-        non_observed = to_tensor(BiNet.non_observed_nodes_a, device)
+        observed = tensor_cache.get_tensor('observed_a', BiNet.observed_nodes_a)
+        non_observed = tensor_cache.get_tensor('non_observed_a', BiNet.non_observed_nodes_a)
     elif layer == "b":
         na = BiNet.nodes_b
-        observed = to_tensor(BiNet.observed_nodes_b, device)
-        non_observed = to_tensor(BiNet.non_observed_nodes_b, device)
+        observed = tensor_cache.get_tensor('observed_b', BiNet.observed_nodes_b)
+        non_observed = tensor_cache.get_tensor('non_observed_b', BiNet.non_observed_nodes_b)
     else:
         raise TypeError("Layer must be 'a' or 'b'")
     
     # Convert omega to tensor
-    omega = to_tensor(BiNet.omega, device)
+    omega = tensor_cache.get_tensor('omega', BiNet.omega)
     
     # Initialize new_theta
-    new_theta = torch.zeros((len(na), na.K), device=device)
+    new_theta = torch.empty((len(na), na.K), device=device, dtype=omega.dtype)
     
     # Compute theta for observed nodes
     if layer == "a":
@@ -109,16 +148,16 @@ def theta_comp_arrays_multilayer(BiNet, layer="a", device='cuda'):
     
     # Add contributions from exclusive metadata
     for meta in na.meta_exclusives.values():
-        meta_omega = to_tensor(meta.omega, device)
+        meta_omega = tensor_cache.get_tensor(f'meta_omega_{meta.meta_name}', meta.omega)
         new_theta += torch.sum(meta_omega, dim=1) * meta.lambda_val
     
     # Add contributions from inclusive metadata
     for meta in na.meta_inclusives.values():
-        meta_omega = to_tensor(meta.omega, device)
+        meta_omega = tensor_cache.get_tensor(f'meta_omega_{meta.meta_name}', meta.omega)
         new_theta += torch.sum(meta_omega, dim=(1, 2)) * meta.lambda_val
     
     # Normalize
-    new_theta /= to_tensor(na.denominators, device)
+    new_theta /= tensor_cache.get_tensor('denominators', na.denominators)
     
     # Handle cold starts
     if not na._has_metas and len(non_observed) != 0:
@@ -137,7 +176,7 @@ def p_kl_comp_arrays(Ka, Kb, N_labels, links, omega, mask_list, device='cuda'):
     mask_list = [to_tensor(mask, device) for mask in mask_list]
     
     # Initialize p_kl tensor
-    p_kl = torch.zeros((Ka, Kb, N_labels), device=device)
+    p_kl = torch.empty((Ka, Kb, N_labels), device=device)
     
     # Compute sum_list
     sum_list = omega[links[:, 0], links[:, 1]]
