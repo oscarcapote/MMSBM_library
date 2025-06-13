@@ -12,13 +12,48 @@ def to_tensor_cached(x, device='cuda'):
         return x.to(device)
     return x
 
+def _get_cache_key(x, device):
+    """Generate a cache key for a numpy array or tensor."""
+    if isinstance(x, np.ndarray):
+        # Use shape, dtype and a hash of the data as the key
+        return (x.shape, x.dtype, hash(x.tobytes()), device)
+    elif isinstance(x, torch.Tensor):
+        # For tensors, use shape, dtype and device
+        return (tuple(x.shape), x.dtype, device)
+    return (x, device)
+
+class TensorCache:
+    """Class to manage tensor caching for mutable objects."""
+    def __init__(self, device='cuda'):
+        self.device = device
+        self.cache = {}
+    
+    def get_tensor(self, key, data):
+        """Get tensor from cache or create new one."""
+        cache_key = _get_cache_key(data, self.device)
+        if cache_key not in self.cache:
+            self.cache[cache_key] = to_tensor(data, self.device, cache=False)
+        return self.cache[cache_key]
+    
+    def update_tensor(self, key, data):
+        """Update tensor in cache."""
+        cache_key = _get_cache_key(data, self.device)
+        self.cache[cache_key] = to_tensor(data, self.device, cache=False)
+    
+    def clear(self):
+        """Clear the cache."""
+        self.cache.clear()
+
+# Create a global cache instance
+tensor_cache = TensorCache()
+
 def to_tensor(x, device='cuda', cache=True):
     """
     Convert numpy array to torch tensor and move to specified device.
     Uses caching for immutable inputs to avoid repeated conversions.
     """
     if cache and isinstance(x, (np.ndarray, torch.Tensor)):
-        return to_tensor_cached(x, device)
+        return tensor_cache.get_tensor(None, x)
     if isinstance(x, np.ndarray):
         return torch.from_numpy(x).to(device)
     elif isinstance(x, torch.Tensor):
@@ -30,29 +65,6 @@ def to_numpy(x):
     if isinstance(x, torch.Tensor):
         return x.cpu().numpy()
     return x
-
-class TensorCache:
-    """Class to manage tensor caching for mutable objects."""
-    def __init__(self, device='cuda'):
-        self.device = device
-        self.cache = {}
-    
-    def get_tensor(self, key, data):
-        """Get tensor from cache or create new one."""
-        if key not in self.cache:
-            self.cache[key] = to_tensor(data, self.device, cache=False)
-        return self.cache[key]
-    
-    def update_tensor(self, key, data):
-        """Update tensor in cache."""
-        self.cache[key] = to_tensor(data, self.device, cache=False)
-    
-    def clear(self):
-        """Clear the cache."""
-        self.cache.clear()
-
-# Create a global cache instance
-tensor_cache = TensorCache()
 
 def omega_comp_arrays(Na, Nb, p_kl, theta, eta, K, L, links_array, links_ratings, device='cuda'):
     """
