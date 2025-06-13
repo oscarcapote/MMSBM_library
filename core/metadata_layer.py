@@ -16,6 +16,10 @@ class metadata_layer:
 
     Attributes
     ----------
+    lambda_val : float
+        Metadata visibility parameter
+    meta_name : str
+        Name of the metadata column in the node_layer class
     N_att : int
         Number of different categorical attributes of the metadata.
     dict_codes : dict

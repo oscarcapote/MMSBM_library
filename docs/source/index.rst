@@ -76,7 +76,7 @@ Basic Example
    movies = politicians.add_inclusive_metadata(lambda_movies, "Movies_preferences", Tau_movies)
 
    #Dataframe of bills
-   df_bills =pd.DataFrame( {"bill":["A", "B", "C","D"],
+   df_bills = pd.DataFrame( {"bill":["A", "B", "C","D"],
                               "Year":[2020, 2020, 2021, 2022]})
    #Number of groups
    K = 2
@@ -84,7 +84,7 @@ Basic Example
    bills = sbm.nodes_layer(K,"bill",df_bills)
 
    #Dataframe of votes
-   df_votes =pd.DataFrame( {"legislator":["Pedro","Pedro","Pedro","Santiago","Santiago","Santiago", 
+   df_votes = pd.DataFrame( {"legislator":["Pedro","Pedro","Pedro","Santiago","Santiago","Santiago", 
                                           "Alberto", "Alberto", "Alberto", "Yolanda", "Yolanda", "Yolanda"],
                            "bill":["A", "B", "D",  "A","C", "D",
                                     "A", "B", "C",  "B","C", "D",],
