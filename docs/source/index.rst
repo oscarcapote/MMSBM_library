@@ -93,6 +93,22 @@ Basic Example
    #Creating the BiNet object
    votes = sbm.BiNet(df_votes,"votes",nodes_a=bills,nodes_b=politicians)
 
+   #Fitting the model
+   ## Initialize the EM algorithm by generating the parameters
+   votes.init_EM()
+
+   ## Running the EM algorithm for 100 iterations and check the convergence every 10 steps
+   for i in range(100):
+      votes.EM_step()
+      if i % 10 == 0:
+         converges = votes.converges()
+         print(f"Iteration {i} - Convergence: {converges}")
+         if converges:
+            break
+
+   #Getting the accuracy
+   print(f"Accuracy: {votes.get_accuracy()}")
+
 How It Works
 ------------
 
